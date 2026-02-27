@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">LadaStylePlayer</string>
+    <string name="status_no_usb">Папка USB не выбрана</string>
+    <string name="status_usb_ready">USB папка загружена</string>
+    <string name="cover_desc">Обложка трека</string>
+    <string name="no_track">Трек не воспроизводится</string>
+    <string name="mute">Без звука</string>
+    <string name="prev">Назад</string>
+    <string name="next">Вперёд</string>
+    <string name="play_pause">Пуск/Пауза</string>
+    <string name="browse">Открыть</string>
+    <string name="play_all">Играть всё</string>
+    <string name="usb_disconnected">USB отключён, выберите папку заново</string>
+    <string name="choose_folder">Выберите папку USB</string>
+</resources>

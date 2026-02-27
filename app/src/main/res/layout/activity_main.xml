@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_main"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/bg_top"
+        android:padding="12dp"
+        android:text="@string/status_no_usb"
+        android:textColor="@android:color/white"
+        android:textSize="18sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/leftRecycler"
+            android:layout_width="220dp"
+            android:layout_height="match_parent"
+            android:background="@color/bg_panel" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="12dp"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/coverImage"
+                android:layout_width="340dp"
+                android:layout_height="220dp"
+                android:background="@color/bg_panel"
+                android:contentDescription="@string/cover_desc"
+                android:padding="8dp"
+                android:scaleType="centerCrop"
+                android:src="@android:drawable/ic_menu_report_image" />
+
+            <TextView
+                android:id="@+id/titleText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:text="@string/no_track"
+                android:textColor="@android:color/white"
+                android:textSize="20sp" />
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rightRecycler"
+            android:layout_width="320dp"
+            android:layout_height="match_parent"
+            android:background="@color/bg_panel" />
+    </LinearLayout>
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingTop="10dp">
+
+            <Button
+                android:id="@+id/muteButton"
+                style="@style/ControlButton"
+                android:text="@string/mute" />
+
+            <Button
+                android:id="@+id/prevButton"
+                style="@style/ControlButton"
+                android:text="@string/prev" />
+
+            <Button
+                android:id="@+id/playPauseButton"
+                style="@style/ControlButtonWide"
+                android:text="@string/play_pause" />
+
+            <Button
+                android:id="@+id/nextButton"
+                style="@style/ControlButton"
+                android:text="@string/next" />
+
+            <Button
+                android:id="@+id/browseButton"
+                style="@style/ControlButton"
+                android:text="@string/browse" />
+
+            <Button
+                android:id="@+id/playAllButton"
+                style="@style/ControlButton"
+                android:text="@string/play_all" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+</LinearLayout>
