@@ -5,7 +5,7 @@ Android music player prototype for head units (Teyes CC3), focused on USB playba
 ## Build
 1. Open project in Android Studio Iguana+.
 2. Sync Gradle.
-3. Generate Gradle wrapper locally (because this repo intentionally excludes binary files): `gradle wrapper`.
+3. Regenerate the missing wrapper JAR locally: `./scripts/regenerate-wrapper.sh`.
 4. Build with `./gradlew assembleDebug`.
 
 ## Run on device
@@ -25,4 +25,8 @@ Android music player prototype for head units (Teyes CC3), focused on USB playba
 
 ## Repository policy
 - Binary files are intentionally excluded (including `gradle/wrapper/gradle-wrapper.jar`) to satisfy repository limitations.
-- After clone, run `gradle wrapper` once to regenerate wrapper JAR locally.
+- After clone, run `./scripts/regenerate-wrapper.sh` to regenerate the wrapper JAR locally.
+
+## Troubleshooting Gradle sync
+- If Android Studio shows a long Gradle Tooling stack trace during sync, first regenerate the wrapper JAR with `./scripts/regenerate-wrapper.sh`.
+- If you see `Unsupported class file major version 69`, switch Gradle JDK to Java 17 (File → Settings → Build Tools → Gradle → Gradle JDK).
