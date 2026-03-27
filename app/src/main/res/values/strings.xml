@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">LadaStylePlayer</string>
     <string name="status_no_usb">USB folder is not selected</string>
-    <string name="status_usb_ready">USB folder loaded</string>
+    <string name="status_usb_ready">USB ready</string>
     <string name="cover_desc">Track cover</string>
     <string name="no_track">No track playing</string>
     <string name="mute">Mute</string>
@@ -12,4 +12,14 @@
     <string name="play_all">Play All</string>
     <string name="usb_disconnected">USB disconnected, choose folder again</string>
     <string name="choose_folder">Choose USB folder</string>
+    <string name="folders">Folders</string>
+    <string name="playlist">Playlist</string>
+    <string name="unknown_artist">Unknown artist</string>
+    <string name="unknown_album">Folder information unavailable</string>
+    <string name="prev_symbol">⏮</string>
+    <string name="next_symbol">⏭</string>
+    <string name="play_symbol">▶</string>
+    <string name="pause_symbol">⏸</string>
+    <string name="browse_symbol">📁</string>
+    <string name="mute_symbol">🔇</string>
 </resources>

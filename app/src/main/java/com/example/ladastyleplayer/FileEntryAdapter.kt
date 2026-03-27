@@ -12,16 +12,29 @@ import androidx.recyclerview.widget.RecyclerView
  * Recycler adapter for folder/file entries shown in left and right lists.
  */
 class FileEntryAdapter(
+    private val showPlayFolderButton: Boolean,
     private val onFolderClick: (DocumentFile) -> Unit,
     private val onFileClick: (DocumentFile) -> Unit,
     private val onPlayFolder: (DocumentFile) -> Unit
 ) : RecyclerView.Adapter<FileEntryAdapter.EntryViewHolder>() {
 
     private val items = mutableListOf<DocumentFile>()
+    private var selectedUri: String? = null
+    private var highlightedUri: String? = null
 
     fun submitList(newItems: List<DocumentFile>) {
         items.clear()
         items.addAll(newItems)
+        notifyDataSetChanged()
+    }
+
+    fun setSelectedUri(uri: String?) {
+        selectedUri = uri
+        notifyDataSetChanged()
+    }
+
+    fun setHighlightedUri(uri: String?) {
+        highlightedUri = uri
         notifyDataSetChanged()
     }
 
@@ -34,8 +47,11 @@ class FileEntryAdapter(
         val item = items[position]
         holder.name.text = item.name ?: "-"
 
+        val uri = item.uri.toString()
+        holder.itemView.isActivated = uri == selectedUri || uri == highlightedUri
+
         if (item.isDirectory) {
-            holder.playFolder.visibility = View.VISIBLE
+            holder.playFolder.visibility = if (showPlayFolderButton) View.VISIBLE else View.GONE
             holder.itemView.setOnClickListener { onFolderClick(item) }
             holder.playFolder.setOnClickListener { onPlayFolder(item) }
         } else {

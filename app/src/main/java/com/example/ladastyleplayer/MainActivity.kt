@@ -8,9 +8,12 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Base64
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,21 +28,47 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
     private val prefs by lazy { getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
     private val repository = FileRepository()
     private val mainScope = CoroutineScope(Dispatchers.Main + Job())
+    private val uiHandler = Handler(Looper.getMainLooper())
 
     private lateinit var leftAdapter: FileEntryAdapter
     private lateinit var rightAdapter: FileEntryAdapter
 
-    private lateinit var statusText: TextView
+    private lateinit var pathText: TextView
+    private lateinit var clockText: TextView
     private lateinit var titleText: TextView
+    private lateinit var artistText: TextView
+    private lateinit var albumText: TextView
     private lateinit var coverImage: ImageView
+    private lateinit var progressBar: ProgressBar
+    private lateinit var currentTimeText: TextView
+    private lateinit var totalTimeText: TextView
+    private lateinit var playPauseButton: Button
 
     private var currentFolder: DocumentFile? = null
+
+    private val clockRunnable = object : Runnable {
+        override fun run() {
+            val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+            clockText.text = formatter.format(Date())
+            uiHandler.postDelayed(this, CLOCK_REFRESH_MS)
+        }
+    }
+
+    private val playerProgressPoller = object : Runnable {
+        override fun run() {
+            startPlayerAction(PlayerService.ACTION_REPORT_STATE)
+            uiHandler.postDelayed(this, PLAYER_PROGRESS_POLL_MS)
+        }
+    }
 
     private val chooseFolderLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -53,12 +82,28 @@ class MainActivity : AppCompatActivity() {
     private val trackReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action != PlayerService.ACTION_TRACK_CHANGED) return
+
             titleText.text = intent.getStringExtra(PlayerService.EXTRA_TITLE) ?: getString(R.string.no_track)
+            artistText.text = intent.getStringExtra(PlayerService.EXTRA_ARTIST) ?: getString(R.string.unknown_artist)
+            albumText.text = intent.getStringExtra(PlayerService.EXTRA_ALBUM) ?: getString(R.string.unknown_album)
+            playPauseButton.text = if (intent.getBooleanExtra(PlayerService.EXTRA_IS_PLAYING, false)) {
+                getString(R.string.pause_symbol)
+            } else {
+                getString(R.string.play_symbol)
+            }
+
+            val durationMs = intent.getLongExtra(PlayerService.EXTRA_DURATION_MS, 0L)
+            val positionMs = intent.getLongExtra(PlayerService.EXTRA_POSITION_MS, 0L)
+            updateProgress(positionMs, durationMs)
+
+            val currentUri = intent.getStringExtra(PlayerService.EXTRA_CURRENT_URI)
+            rightAdapter.setHighlightedUri(currentUri)
+
             val b64 = intent.getStringExtra(PlayerService.EXTRA_COVER_B64)
             if (!b64.isNullOrBlank()) {
                 val bytes = Base64.decode(b64, Base64.DEFAULT)
                 coverImage.setImageBitmap(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
-            } else {
+            } else if (intent.hasExtra(PlayerService.EXTRA_COVER_B64)) {
                 coverImage.setImageResource(android.R.drawable.ic_menu_report_image)
             }
         }
@@ -68,9 +113,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        statusText = findViewById(R.id.statusText)
+        pathText = findViewById(R.id.pathText)
+        clockText = findViewById(R.id.clockText)
         titleText = findViewById(R.id.titleText)
+        artistText = findViewById(R.id.artistText)
+        albumText = findViewById(R.id.albumText)
         coverImage = findViewById(R.id.coverImage)
+        progressBar = findViewById(R.id.progressBar)
+        currentTimeText = findViewById(R.id.currentTimeText)
+        totalTimeText = findViewById(R.id.totalTimeText)
+        playPauseButton = findViewById(R.id.playPauseButton)
 
         setupRecyclerViews()
         setupButtons()
@@ -84,20 +136,26 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         registerReceiverCompat(trackReceiver, IntentFilter(PlayerService.ACTION_TRACK_CHANGED))
+        uiHandler.post(clockRunnable)
+        uiHandler.post(playerProgressPoller)
     }
 
     override fun onStop() {
+        uiHandler.removeCallbacks(clockRunnable)
+        uiHandler.removeCallbacks(playerProgressPoller)
         unregisterReceiver(trackReceiver)
         super.onStop()
     }
 
     private fun setupRecyclerViews() {
         leftAdapter = FileEntryAdapter(
+            showPlayFolderButton = true,
             onFolderClick = { folder -> openFolder(folder) },
             onFileClick = { file -> playSingle(file) },
             onPlayFolder = { folder -> playAll(folder, false) }
         )
         rightAdapter = FileEntryAdapter(
+            showPlayFolderButton = false,
             onFolderClick = { folder -> openFolder(folder) },
             onFileClick = { file -> playSingle(file) },
             onPlayFolder = { folder -> playAll(folder, false) }
@@ -117,7 +175,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.browseButton).setOnClickListener {
             chooseFolderLauncher.launch(null)
         }
-        findViewById<Button>(R.id.playPauseButton).setOnClickListener {
+        playPauseButton.setOnClickListener {
             startPlayerAction(PlayerService.ACTION_PLAY_PAUSE)
         }
         findViewById<Button>(R.id.nextButton).setOnClickListener {
@@ -129,9 +187,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.muteButton).setOnClickListener {
             startPlayerAction(PlayerService.ACTION_TOGGLE_MUTE)
         }
-        findViewById<Button>(R.id.playAllButton).setOnClickListener {
-            currentFolder?.let { playAll(it, true) }
-        }
     }
 
     private fun openTree(uri: Uri, resume: Boolean = false) {
@@ -141,7 +196,7 @@ class MainActivity : AppCompatActivity() {
                 showUsbError()
                 return
             }
-            statusText.text = getString(R.string.status_usb_ready)
+            pathText.text = getString(R.string.status_usb_ready)
             currentFolder = root
             openFolder(root)
             if (resume) playAll(root, true)
@@ -152,13 +207,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun openFolder(folder: DocumentFile) {
         currentFolder = folder
+        leftAdapter.setSelectedUri(folder.uri.toString())
+        pathText.text = folder.uri.path ?: getString(R.string.status_usb_ready)
+
         mainScope.launch {
             runCatching { repository.listChildren(folder) }
                 .onSuccess { items ->
                     val folders = items.filter { it.isDirectory }
                     val files = items.filter { it.isFile }
                     leftAdapter.submitList(folders)
-                    rightAdapter.submitList(if (folders.isNotEmpty()) folders else files)
+                    rightAdapter.submitList(files)
                 }
                 .onFailure {
                     showUsbError()
@@ -195,8 +253,22 @@ class MainActivity : AppCompatActivity() {
         startService(Intent(this, PlayerService::class.java).setAction(action))
     }
 
+    private fun updateProgress(positionMs: Long, durationMs: Long) {
+        val safeDuration = if (durationMs > 0) durationMs else 1L
+        progressBar.progress = ((positionMs.coerceAtLeast(0L) * 1000L) / safeDuration).toInt()
+        currentTimeText.text = formatTime(positionMs)
+        totalTimeText.text = if (durationMs > 0) formatTime(durationMs) else "00:00"
+    }
+
+    private fun formatTime(timeMs: Long): String {
+        val totalSeconds = (timeMs / 1000L).toInt()
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+    }
+
     private fun showUsbError() {
-        statusText.text = getString(R.string.status_no_usb)
+        pathText.text = getString(R.string.status_no_usb)
         Toast.makeText(this, R.string.usb_disconnected, Toast.LENGTH_LONG).show()
     }
 
@@ -212,5 +284,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PREFS_NAME = "player_prefs"
         private const val KEY_TREE_URI = "tree_uri"
+        private const val CLOCK_REFRESH_MS = 30_000L
+        private const val PLAYER_PROGRESS_POLL_MS = 1_000L
     }
 }
