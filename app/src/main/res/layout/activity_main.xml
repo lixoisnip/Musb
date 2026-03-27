@@ -4,44 +4,88 @@
     android:layout_height="match_parent"
     android:background="@color/bg_main"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="14dp">
 
-    <TextView
-        android:id="@+id/statusText"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/bg_top"
-        android:padding="12dp"
-        android:text="@string/status_no_usb"
-        android:textColor="@android:color/white"
-        android:textSize="18sp" />
+        android:layout_height="44dp"
+        android:background="@drawable/bg_top_bar"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp">
+
+        <TextView
+            android:id="@+id/pathText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="middle"
+            android:maxLines="1"
+            android:text="@string/status_no_usb"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/clockText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="--:--"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="12dp"
+        android:baselineAligned="false"
         android:orientation="horizontal">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/leftRecycler"
-            android:layout_width="220dp"
-            android:layout_height="match_parent"
-            android:background="@color/bg_panel" />
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginHorizontal="12dp"
-            android:gravity="center"
-            android:orientation="vertical">
+            android:layout_marginEnd="10dp"
+            android:background="@drawable/bg_panel_rounded"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/folders"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/leftRecycler"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginTop="10dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:paddingBottom="8dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1.4"
+            android:layout_marginHorizontal="10dp"
+            android:background="@drawable/bg_panel_rounded"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="18dp">
 
             <ImageView
                 android:id="@+id/coverImage"
-                android:layout_width="340dp"
+                android:layout_width="360dp"
                 android:layout_height="220dp"
-                android:background="@color/bg_panel"
+                android:adjustViewBounds="true"
+                android:background="@drawable/bg_cover"
                 android:contentDescription="@string/cover_desc"
                 android:padding="8dp"
                 android:scaleType="centerCrop"
@@ -51,63 +95,146 @@
                 android:id="@+id/titleText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="12dp"
+                android:ellipsize="end"
                 android:gravity="center"
+                android:maxLines="1"
                 android:text="@string/no_track"
-                android:textColor="@android:color/white"
-                android:textSize="20sp" />
+                android:textColor="@color/text_primary"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/artistText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="@string/unknown_artist"
+                android:textColor="@color/text_secondary"
+                android:textSize="17sp" />
+
+            <TextView
+                android:id="@+id/albumText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="@string/unknown_album"
+                android:textColor="@color/text_muted"
+                android:textSize="15sp" />
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="8dp"
+                android:layout_marginTop="16dp"
+                android:indeterminate="false"
+                android:max="1000"
+                android:progress="0"
+                android:progressTint="@color/accent_amber"
+                android:progressBackgroundTint="@color/surface_variant" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/currentTimeText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="00:00"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/totalTimeText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="00:00"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp" />
+            </LinearLayout>
         </LinearLayout>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rightRecycler"
-            android:layout_width="320dp"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:background="@color/bg_panel" />
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/bg_panel_rounded"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/playlist"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rightRecycler"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginTop="10dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:paddingBottom="8dp" />
+        </LinearLayout>
     </LinearLayout>
 
-    <HorizontalScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fillViewport="true"
-        android:scrollbars="none">
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:orientation="horizontal">
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingTop="10dp">
-
-            <Button
-                android:id="@+id/muteButton"
-                style="@style/ControlButton"
-                android:text="@string/mute" />
+            android:orientation="horizontal">
 
             <Button
                 android:id="@+id/prevButton"
-                style="@style/ControlButton"
-                android:text="@string/prev" />
-
-            <Button
-                android:id="@+id/playPauseButton"
-                style="@style/ControlButtonWide"
-                android:text="@string/play_pause" />
-
-            <Button
-                android:id="@+id/nextButton"
-                style="@style/ControlButton"
-                android:text="@string/next" />
+                style="@style/ControlButtonSmall"
+                android:text="@string/prev_symbol" />
 
             <Button
                 android:id="@+id/browseButton"
-                style="@style/ControlButton"
-                android:text="@string/browse" />
+                style="@style/ControlButtonSmall"
+                android:text="@string/browse_symbol" />
 
             <Button
-                android:id="@+id/playAllButton"
-                style="@style/ControlButton"
-                android:text="@string/play_all" />
+                android:id="@+id/playPauseButton"
+                style="@style/ControlButtonCenter"
+                android:text="@string/play_symbol" />
+
+            <Button
+                android:id="@+id/nextButton"
+                style="@style/ControlButtonSmall"
+                android:text="@string/next_symbol" />
+
+            <Button
+                android:id="@+id/muteButton"
+                style="@style/ControlButtonSmall"
+                android:text="@string/mute_symbol" />
         </LinearLayout>
-    </HorizontalScrollView>
+    </LinearLayout>
 
 </LinearLayout>

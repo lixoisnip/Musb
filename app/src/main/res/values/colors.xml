@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_main">#121212</color>
-    <color name="bg_top">#1E1E1E</color>
-    <color name="bg_panel">#323232</color>
+    <color name="bg_main">#0D0F12</color>
+    <color name="surface_topbar">#171A1F</color>
+    <color name="surface_panel_top">#20252B</color>
+    <color name="surface_panel_bottom">#1A1E24</color>
+    <color name="surface_variant">#272C33</color>
+    <color name="accent_amber">#E29A43</color>
+    <color name="accent_amber_soft">#A47236</color>
+    <color name="text_primary">#F6F7F8</color>
+    <color name="text_secondary">#CBD0D8</color>
+    <color name="text_muted">#9298A0</color>
+    <color name="stroke_subtle">#38414C</color>
+    <color name="list_item_bg">#1C2127</color>
+    <color name="list_item_selected">#30261C</color>
+    <color name="chip_bg">#2B3139</color>
+    <color name="control_bg">#242A31</color>
+    <color name="control_pressed">#2D353E</color>
 </resources>
