@@ -39,6 +39,16 @@ class FileEntryAdapter(
         notifyDataSetChanged()
     }
 
+    fun findPositionByUri(uri: String?): Int {
+        if (uri.isNullOrBlank()) return RecyclerView.NO_POSITION
+        return items.indexOfFirst { it.uri.toString() == uri }
+    }
+
+    fun getItemByUri(uri: String?): DocumentFile? {
+        if (uri.isNullOrBlank()) return null
+        return items.firstOrNull { it.uri.toString() == uri }
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EntryViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_entry, parent, false)
         return EntryViewHolder(view)
@@ -52,7 +62,12 @@ class FileEntryAdapter(
         holder.itemView.isActivated = uri == selectedUri || uri == highlightedUri
 
         val depth = documentDepth(item.uri)
-        holder.name.setPaddingRelative(8 * depth, holder.name.paddingTop, holder.name.paddingEnd, holder.name.paddingBottom)
+        holder.name.setPaddingRelative(
+            8 * depth,
+            holder.name.paddingTop,
+            holder.name.paddingEnd,
+            holder.name.paddingBottom
+        )
 
         if (item.isDirectory) {
             holder.icon.text = "📁"

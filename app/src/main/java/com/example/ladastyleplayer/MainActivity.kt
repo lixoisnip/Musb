@@ -12,15 +12,18 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.documentfile.provider.DocumentFile
+import androidx.media3.common.Player
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.ladastyleplayer.player.PlayerService
@@ -55,13 +58,26 @@ class MainActivity : AppCompatActivity() {
     private lateinit var currentTimeText: TextView
     private lateinit var totalTimeText: TextView
     private lateinit var playPauseButton: Button
+    private lateinit var seekButton: Button
+    private lateinit var shuffleButton: Button
+    private lateinit var repeatButton: Button
+    private lateinit var listButton: Button
+    private lateinit var infoButton: Button
+    private lateinit var muteButton: Button
     private lateinit var usbStatusText: TextView
+    private lateinit var rightRecycler: RecyclerView
+    private lateinit var rightPanel: View
 
     private var currentFolder: DocumentFile? = null
     private val coverPlaceholderRes = android.R.drawable.ic_menu_report_image
     private var latestDurationMs: Long = 0L
     private var isUserSeeking = false
     private var lastCoverUri: String? = null
+    private var currentTrackUri: String? = null
+    private var isPlaylistFocused = false
+    private var isShuffleOn = false
+    private var repeatMode = Player.REPEAT_MODE_OFF
+    private var isMuted = false
 
     private val clockRunnable = object : Runnable {
         override fun run() {
@@ -122,18 +138,20 @@ class MainActivity : AppCompatActivity() {
         albumText.text = intent.getStringExtra(PlayerService.EXTRA_ALBUM) ?: getString(R.string.unknown_album)
         topSourceText.text = "Playing from ${albumText.text}"
 
-        playPauseButton.text = if (intent.getBooleanExtra(PlayerService.EXTRA_IS_PLAYING, false)) {
-            getString(R.string.pause_symbol)
-        } else {
-            getString(R.string.play_symbol)
-        }
+        val isPlaying = intent.getBooleanExtra(PlayerService.EXTRA_IS_PLAYING, false)
+        playPauseButton.text = if (isPlaying) getString(R.string.pause_symbol) else getString(R.string.play_symbol)
+
+        isMuted = intent.getBooleanExtra(PlayerService.EXTRA_IS_MUTED, isMuted)
+        isShuffleOn = intent.getBooleanExtra(PlayerService.EXTRA_SHUFFLE_ENABLED, isShuffleOn)
+        repeatMode = intent.getIntExtra(PlayerService.EXTRA_REPEAT_MODE, repeatMode)
+        applyControlStates()
 
         val durationMs = intent.getLongExtra(PlayerService.EXTRA_DURATION_MS, 0L)
         val positionMs = intent.getLongExtra(PlayerService.EXTRA_POSITION_MS, 0L)
         updateProgress(positionMs, durationMs)
 
-        val currentUri = intent.getStringExtra(PlayerService.EXTRA_CURRENT_URI)
-        rightAdapter.setHighlightedUri(currentUri)
+        currentTrackUri = intent.getStringExtra(PlayerService.EXTRA_CURRENT_URI)
+        rightAdapter.setHighlightedUri(currentTrackUri)
 
         val b64 = intent.getStringExtra(PlayerService.EXTRA_COVER_B64)
         var didSetCoverFromBroadcast = false
@@ -144,19 +162,19 @@ class MainActivity : AppCompatActivity() {
             }.onSuccess { bitmap ->
                 if (bitmap != null) {
                     coverImage.setImageBitmap(bitmap)
-                    lastCoverUri = currentUri
+                    lastCoverUri = currentTrackUri
                     didSetCoverFromBroadcast = true
                 } else {
-                    loadCoverFromUri(currentUri)
+                    loadCoverFromUri(currentTrackUri)
                 }
             }.onFailure {
-                loadCoverFromUri(currentUri)
+                loadCoverFromUri(currentTrackUri)
             }
-        } else if (currentUri != lastCoverUri || isCoverPlaceholderVisible()) {
-            loadCoverFromUri(currentUri)
+        } else if (currentTrackUri != lastCoverUri || isCoverPlaceholderVisible()) {
+            loadCoverFromUri(currentTrackUri)
         }
 
-        if (!didSetCoverFromBroadcast && b64.isNullOrBlank() && currentUri == null) {
+        if (!didSetCoverFromBroadcast && b64.isNullOrBlank() && currentTrackUri == null) {
             coverImage.setImageResource(coverPlaceholderRes)
             lastCoverUri = null
         }
@@ -177,7 +195,16 @@ class MainActivity : AppCompatActivity() {
         currentTimeText = findViewById(R.id.currentTimeText)
         totalTimeText = findViewById(R.id.totalTimeText)
         playPauseButton = findViewById(R.id.playPauseButton)
+        seekButton = findViewById(R.id.seekButton)
+        shuffleButton = findViewById(R.id.shuffleButton)
+        repeatButton = findViewById(R.id.repeatButton)
+        listButton = findViewById(R.id.listButton)
+        infoButton = findViewById(R.id.commentButton)
+        muteButton = findViewById(R.id.muteButton)
         usbStatusText = findViewById(R.id.usbStatusText)
+        rightPanel = findViewById(R.id.rightPanel)
+        rightRecycler = findViewById(R.id.rightRecycler)
+
         coverImage.setImageResource(coverPlaceholderRes)
         progressBar.max = 1000
         progressBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -213,6 +240,7 @@ class MainActivity : AppCompatActivity() {
 
         setupRecyclerViews()
         setupButtons()
+        applyControlStates()
 
         val persistedTree = prefs.getString(KEY_TREE_URI, null)
         if (persistedTree != null) {
@@ -256,7 +284,7 @@ class MainActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = leftAdapter
         }
-        findViewById<RecyclerView>(R.id.rightRecycler).apply {
+        rightRecycler.apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = rightAdapter
         }
@@ -280,8 +308,27 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.prevButton).setOnClickListener {
             startPlayerAction(PlayerService.ACTION_PREV)
         }
-        findViewById<Button>(R.id.muteButton).setOnClickListener {
+        muteButton.setOnClickListener {
             startPlayerAction(PlayerService.ACTION_TOGGLE_MUTE)
+        }
+        seekButton.setOnClickListener {
+            startPlayerAction(PlayerService.ACTION_SEEK_FORWARD)
+            Toast.makeText(this, R.string.seek_forward_hint, Toast.LENGTH_SHORT).show()
+        }
+        shuffleButton.setOnClickListener {
+            startPlayerAction(PlayerService.ACTION_TOGGLE_SHUFFLE)
+        }
+        repeatButton.setOnClickListener {
+            startPlayerAction(PlayerService.ACTION_CYCLE_REPEAT)
+        }
+        listButton.setOnClickListener {
+            isPlaylistFocused = !isPlaylistFocused
+            rightPanel.isActivated = isPlaylistFocused
+            listButton.isActivated = isPlaylistFocused
+            scrollPlaylistToCurrent()
+        }
+        infoButton.setOnClickListener {
+            showTrackInfoDialog()
         }
     }
 
@@ -318,7 +365,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun openFolder(folder: DocumentFile) {
         currentFolder = folder
-        leftAdapter.setSelectedUri(folder.uri.toString())
 
         val folderName = folder.name ?: "Music"
         pathText.text = "USB • Music • $folderName"
@@ -331,17 +377,22 @@ class MainActivity : AppCompatActivity() {
                     val audioFiles = items.filter { it.isFile && repository.isSupportedAudio(it.name) }
                     leftAdapter.submitList(folders)
                     rightAdapter.submitList(audioFiles)
-                    findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.no_folders_found)
+                    leftAdapter.setSelectedUri(folder.uri.toString())
+
+                    findViewById<TextView>(R.id.leftEmptyText).text =
+                        if (folder == currentFolder) getString(R.string.no_subfolders_found) else getString(R.string.no_folders_found)
                     findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.no_supported_audio)
                     findViewById<TextView>(R.id.leftEmptyText).visibility =
-                        if (folders.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+                        if (folders.isEmpty()) View.VISIBLE else View.GONE
                     findViewById<TextView>(R.id.rightEmptyText).visibility =
-                        if (audioFiles.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+                        if (audioFiles.isEmpty()) View.VISIBLE else View.GONE
+
+                    rightAdapter.setHighlightedUri(currentTrackUri)
                 }
                 .onFailure {
                     showUsbError()
-                    findViewById<TextView>(R.id.leftEmptyText).visibility = android.view.View.VISIBLE
-                    findViewById<TextView>(R.id.rightEmptyText).visibility = android.view.View.VISIBLE
+                    findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
+                    findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
                 }
         }
     }
@@ -422,6 +473,46 @@ class MainActivity : AppCompatActivity() {
             currentTimeText.text = formatTime(positionMs)
         }
         totalTimeText.text = if (durationMs > 0) formatTime(durationMs) else "00:00"
+    }
+
+    private fun scrollPlaylistToCurrent() {
+        val target = rightAdapter.findPositionByUri(currentTrackUri)
+        if (target != RecyclerView.NO_POSITION) {
+            rightRecycler.smoothScrollToPosition(target)
+        }
+    }
+
+    private fun showTrackInfoDialog() {
+        val trackFile = rightAdapter.getItemByUri(currentTrackUri)?.name
+            ?: currentTrackUri?.substringAfterLast('/')
+            ?: getString(R.string.unknown_file)
+        val body = getString(
+            R.string.track_info_body,
+            titleText.text.toString().ifBlank { getString(R.string.no_track) },
+            artistText.text.toString().ifBlank { getString(R.string.unknown_artist) },
+            albumText.text.toString().ifBlank { getString(R.string.unknown_album) },
+            trackFile,
+            formatTime(latestDurationMs)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(R.string.track_info_title)
+            .setMessage(body)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun applyControlStates() {
+        shuffleButton.isActivated = isShuffleOn
+        repeatButton.isActivated = repeatMode != Player.REPEAT_MODE_OFF
+        repeatButton.text = when (repeatMode) {
+            Player.REPEAT_MODE_ONE -> getString(R.string.repeat_one_symbol)
+            Player.REPEAT_MODE_ALL -> getString(R.string.repeat_all_symbol)
+            else -> getString(R.string.repeat_off_symbol)
+        }
+        listButton.isActivated = isPlaylistFocused
+        rightPanel.isActivated = isPlaylistFocused
+        muteButton.isActivated = isMuted
+        muteButton.text = if (isMuted) getString(R.string.mute_symbol) else getString(R.string.unmute_symbol)
     }
 
     private fun isCoverPlaceholderVisible(): Boolean {
