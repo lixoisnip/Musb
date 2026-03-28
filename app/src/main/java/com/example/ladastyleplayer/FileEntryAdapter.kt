@@ -1,6 +1,7 @@
 package com.example.ladastyleplayer
 
 import android.net.Uri
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -80,7 +81,10 @@ class FileEntryAdapter(
             holder.duration.visibility = View.VISIBLE
             holder.duration.text = "--:--"
             holder.playFolder.visibility = View.GONE
-            holder.itemView.setOnClickListener { onFileClick(item) }
+            holder.itemView.setOnClickListener {
+                Log.d(TAG, "File row tapped: uri=${item.uri}")
+                onFileClick(item)
+            }
         }
     }
 
@@ -96,5 +100,9 @@ class FileEntryAdapter(
         val name: TextView = view.findViewById(R.id.entryName)
         val duration: TextView = view.findViewById(R.id.entryDuration)
         val playFolder: Button = view.findViewById(R.id.playFolderButton)
+    }
+
+    companion object {
+        private const val TAG = "FileEntryAdapter"
     }
 }
