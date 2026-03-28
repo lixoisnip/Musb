@@ -36,6 +36,8 @@ class PlayerService : Service() {
         player = ExoPlayer.Builder(this).build()
         muted = prefs.getBoolean(KEY_MUTED, false)
         player.volume = if (muted) 0f else 1f
+        player.shuffleModeEnabled = prefs.getBoolean(KEY_SHUFFLE, false)
+        player.repeatMode = prefs.getInt(KEY_REPEAT_MODE, Player.REPEAT_MODE_OFF)
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updateNotification(isPlaying)
@@ -75,6 +77,9 @@ class PlayerService : Service() {
             ACTION_NEXT -> player.seekToNextMediaItem()
             ACTION_PREV -> player.seekToPreviousMediaItem()
             ACTION_SEEK_TO -> seekTo(intent.getLongExtra(EXTRA_SEEK_POSITION_MS, 0L))
+            ACTION_SEEK_FORWARD -> seekForwardBy10Sec()
+            ACTION_TOGGLE_SHUFFLE -> toggleShuffle()
+            ACTION_CYCLE_REPEAT -> cycleRepeatMode()
             ACTION_TOGGLE_MUTE -> toggleMute()
             ACTION_REPORT_STATE -> sendTrackChanged(includeCover = false)
         }
@@ -85,6 +90,28 @@ class PlayerService : Service() {
         val target = positionMs.coerceAtLeast(0L)
         player.seekTo(target)
         sendTrackChanged(includeCover = false)
+    }
+
+    private fun seekForwardBy10Sec() {
+        val target = (player.currentPosition + 10_000L).coerceAtMost((player.duration).takeIf { it > 0L } ?: Long.MAX_VALUE)
+        player.seekTo(target)
+        sendTrackChanged(includeCover = false)
+    }
+
+    private fun toggleShuffle() {
+        player.shuffleModeEnabled = !player.shuffleModeEnabled
+        sendTrackChanged(includeCover = false)
+        persistPlaybackState()
+    }
+
+    private fun cycleRepeatMode() {
+        player.repeatMode = when (player.repeatMode) {
+            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+            else -> Player.REPEAT_MODE_OFF
+        }
+        sendTrackChanged(includeCover = false)
+        persistPlaybackState()
     }
 
     private fun handlePlayFolder(intent: Intent) {
@@ -142,6 +169,9 @@ class PlayerService : Service() {
         intent.putExtra(EXTRA_POSITION_MS, player.currentPosition)
         intent.putExtra(EXTRA_DURATION_MS, player.duration.takeIf { it > 0 } ?: 0L)
         intent.putExtra(EXTRA_CURRENT_URI, currentUri?.toString())
+        intent.putExtra(EXTRA_IS_MUTED, muted)
+        intent.putExtra(EXTRA_SHUFFLE_ENABLED, player.shuffleModeEnabled)
+        intent.putExtra(EXTRA_REPEAT_MODE, player.repeatMode)
 
         if (includeCover) {
             intent.putExtra(EXTRA_COVER_B64, currentCoverBase64)
@@ -179,6 +209,8 @@ class PlayerService : Service() {
             putInt(KEY_INDEX, player.currentMediaItemIndex)
             putLong(KEY_POS, player.currentPosition)
             putBoolean(KEY_MUTED, muted)
+            putBoolean(KEY_SHUFFLE, player.shuffleModeEnabled)
+            putInt(KEY_REPEAT_MODE, player.repeatMode)
         }
     }
 
@@ -208,6 +240,8 @@ class PlayerService : Service() {
         private const val KEY_INDEX = "index"
         private const val KEY_POS = "pos"
         private const val KEY_MUTED = "muted"
+        private const val KEY_SHUFFLE = "shuffle"
+        private const val KEY_REPEAT_MODE = "repeat_mode"
         private const val NOTIFICATION_ID = 1001
 
         const val ACTION_PLAY_FOLDER = "com.example.ladastyleplayer.action.PLAY_FOLDER"
@@ -218,6 +252,9 @@ class PlayerService : Service() {
         const val ACTION_PREV = "com.example.ladastyleplayer.action.PREV"
         const val ACTION_SEEK_TO = "com.example.ladastyleplayer.action.SEEK_TO"
         const val ACTION_REPORT_STATE = "com.example.ladastyleplayer.action.REPORT_STATE"
+        const val ACTION_SEEK_FORWARD = "com.example.ladastyleplayer.action.SEEK_FORWARD"
+        const val ACTION_TOGGLE_SHUFFLE = "com.example.ladastyleplayer.action.TOGGLE_SHUFFLE"
+        const val ACTION_CYCLE_REPEAT = "com.example.ladastyleplayer.action.CYCLE_REPEAT"
         const val ACTION_TRACK_CHANGED = "com.example.ladastyleplayer.action.TRACK_CHANGED"
         const val ACTION_PLAYBACK_ERROR = "com.example.ladastyleplayer.action.PLAYBACK_ERROR"
 
@@ -233,6 +270,9 @@ class PlayerService : Service() {
         const val EXTRA_IS_PLAYING = "is_playing"
         const val EXTRA_COVER_B64 = "cover_b64"
         const val EXTRA_SEEK_POSITION_MS = "seek_position_ms"
+        const val EXTRA_IS_MUTED = "is_muted"
+        const val EXTRA_SHUFFLE_ENABLED = "shuffle_enabled"
+        const val EXTRA_REPEAT_MODE = "repeat_mode"
         const val EXTRA_ERROR_MESSAGE = "error_message"
     }
 }
