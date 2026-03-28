@@ -130,7 +130,7 @@ class MainActivity : AppCompatActivity() {
             val bytes = Base64.decode(b64, Base64.DEFAULT)
             coverImage.setImageBitmap(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
         } else if (intent.hasExtra(PlayerService.EXTRA_COVER_B64)) {
-            coverImage.setImageResource(android.R.drawable.ic_menu_report_image)
+            coverImage.setImageDrawable(null)
         }
     }
 
