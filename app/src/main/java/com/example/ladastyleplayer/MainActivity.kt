@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.util.Base64
 import android.view.View
 import android.widget.Button
@@ -441,10 +442,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun playSingle(file: DocumentFile) {
+        Log.d(TAG, "playSingle requested: uri=${file.uri}")
+        if (!hasReadAccess(file.uri)) {
+            val message = getString(R.string.uri_permission_failed)
+            Log.d(TAG, "playSingle blocked, missing read access for uri=${file.uri}")
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            return
+        }
         val intent = Intent(this, PlayerService::class.java).apply {
             action = PlayerService.ACTION_PLAY_SINGLE
             putExtra(PlayerService.EXTRA_SINGLE_URI, file.uri.toString())
         }
+        Log.d(
+            TAG,
+            "Dispatching ACTION_PLAY_SINGLE with EXTRA_SINGLE_URI=${file.uri}"
+        )
         startService(intent)
     }
 
@@ -479,6 +491,13 @@ class MainActivity : AppCompatActivity() {
         } catch (e: IllegalArgumentException) {
             false
         }
+    }
+
+    private fun hasReadAccess(uri: Uri): Boolean {
+        return runCatching {
+            contentResolver.openAssetFileDescriptor(uri, "r")?.use { }
+            true
+        }.getOrElse { false }
     }
 
     private fun updateProgress(positionMs: Long, durationMs: Long) {
@@ -559,6 +578,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val TAG = "MainActivity"
         private const val PREFS_NAME = "player_prefs"
         private const val KEY_TREE_URI = "tree_uri"
         private const val CLOCK_REFRESH_MS = 30_000L

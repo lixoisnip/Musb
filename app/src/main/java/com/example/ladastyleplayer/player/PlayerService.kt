@@ -62,8 +62,8 @@ class PlayerService : Service() {
             }
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                Log.w(TAG, "Playback error, skipping", error)
-                sendPlaybackError(getString(R.string.playback_failed))
+                Log.d(TAG, "onPlayerError: code=${error.errorCodeName}, message=${error.message}", error)
+                sendPlaybackError(error.message ?: getString(R.string.playback_failed))
                 player.seekToNextMediaItem()
             }
         })
@@ -138,9 +138,23 @@ class PlayerService : Service() {
             sendPlaybackError(getString(R.string.playback_failed))
             return
         }
-        player.setMediaItem(MediaItem.fromUri(uri))
-        player.prepare()
-        player.playWhenReady = true
+        Log.d(TAG, "handlePlaySingle: uri=$uri")
+        runCatching {
+            player.setMediaItems(listOf(MediaItem.fromUri(uri)), 0, 0L)
+            currentUri = uri
+            val metadata = extractMetadata(uri)
+            currentTitle = metadata?.title ?: uri.lastPathSegment ?: getString(R.string.no_track)
+            currentArtist = metadata?.artist ?: ""
+            currentAlbum = metadata?.album ?: ""
+            currentCoverBase64 = metadata?.coverBase64
+            sendTrackChanged(includeCover = true)
+            player.prepare()
+            player.playWhenReady = true
+            player.play()
+        }.onFailure { error ->
+            Log.d(TAG, "handlePlaySingle failed for uri=$uri: ${error.message}", error)
+            sendPlaybackError(error.message ?: getString(R.string.playback_failed))
+        }
     }
 
     private fun togglePlayPause() {
