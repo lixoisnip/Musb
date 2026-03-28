@@ -1,5 +1,6 @@
 package com.example.ladastyleplayer
 
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -50,11 +51,19 @@ class FileEntryAdapter(
         val uri = item.uri.toString()
         holder.itemView.isActivated = uri == selectedUri || uri == highlightedUri
 
+        val depth = documentDepth(item.uri)
+        holder.name.setPaddingRelative(8 * depth, holder.name.paddingTop, holder.name.paddingEnd, holder.name.paddingBottom)
+
         if (item.isDirectory) {
+            holder.icon.text = "📁"
+            holder.duration.visibility = View.GONE
             holder.playFolder.visibility = if (showPlayFolderButton) View.VISIBLE else View.GONE
             holder.itemView.setOnClickListener { onFolderClick(item) }
             holder.playFolder.setOnClickListener { onPlayFolder(item) }
         } else {
+            holder.icon.text = "♪"
+            holder.duration.visibility = View.VISIBLE
+            holder.duration.text = "--:--"
             holder.playFolder.visibility = View.GONE
             holder.itemView.setOnClickListener { onFileClick(item) }
         }
@@ -62,8 +71,15 @@ class FileEntryAdapter(
 
     override fun getItemCount(): Int = items.size
 
+    private fun documentDepth(uri: Uri): Int {
+        val docId = Uri.decode(uri.toString()).substringAfterLast(":", "")
+        return docId.count { it == '/' }.coerceIn(0, 4)
+    }
+
     class EntryViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val icon: TextView = view.findViewById(R.id.entryIcon)
         val name: TextView = view.findViewById(R.id.entryName)
+        val duration: TextView = view.findViewById(R.id.entryDuration)
         val playFolder: Button = view.findViewById(R.id.playFolderButton)
     }
 }

@@ -24,10 +24,16 @@
     <string name="unknown_album">Folder information unavailable</string>
     <string name="no_folders_found">No folders in this location</string>
     <string name="no_subfolders_found">No subfolders in this location</string>
+    <string name="now_playing_footer">Now Playing</string>
     <string name="prev_symbol">⏮</string>
     <string name="next_symbol">⏭</string>
     <string name="play_symbol">▶</string>
     <string name="pause_symbol">⏸</string>
     <string name="browse_symbol">📁</string>
     <string name="mute_symbol">🔇</string>
+    <string name="seek_symbol">⏩</string>
+    <string name="shuffle_symbol">🔀</string>
+    <string name="repeat_symbol">🔁</string>
+    <string name="list_symbol">☰</string>
+    <string name="comment_symbol">💬</string>
 </resources>

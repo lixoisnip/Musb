@@ -45,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rightAdapter: FileEntryAdapter
 
     private lateinit var pathText: TextView
+    private lateinit var topSourceText: TextView
     private lateinit var clockText: TextView
     private lateinit var titleText: TextView
     private lateinit var artistText: TextView
@@ -54,6 +55,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var currentTimeText: TextView
     private lateinit var totalTimeText: TextView
     private lateinit var playPauseButton: Button
+    private lateinit var usbStatusText: TextView
 
     private var currentFolder: DocumentFile? = null
     private val coverPlaceholderRes = android.R.drawable.ic_menu_report_image
@@ -115,6 +117,8 @@ class MainActivity : AppCompatActivity() {
         titleText.text = intent.getStringExtra(PlayerService.EXTRA_TITLE) ?: getString(R.string.no_track)
         artistText.text = intent.getStringExtra(PlayerService.EXTRA_ARTIST) ?: getString(R.string.unknown_artist)
         albumText.text = intent.getStringExtra(PlayerService.EXTRA_ALBUM) ?: getString(R.string.unknown_album)
+        topSourceText.text = "Playing from ${albumText.text}"
+
         playPauseButton.text = if (intent.getBooleanExtra(PlayerService.EXTRA_IS_PLAYING, false)) {
             getString(R.string.pause_symbol)
         } else {
@@ -152,6 +156,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         pathText = findViewById(R.id.pathText)
+        topSourceText = findViewById(R.id.topSourceText)
         clockText = findViewById(R.id.clockText)
         titleText = findViewById(R.id.titleText)
         artistText = findViewById(R.id.artistText)
@@ -161,6 +166,7 @@ class MainActivity : AppCompatActivity() {
         currentTimeText = findViewById(R.id.currentTimeText)
         totalTimeText = findViewById(R.id.totalTimeText)
         playPauseButton = findViewById(R.id.playPauseButton)
+        usbStatusText = findViewById(R.id.usbStatusText)
         coverImage.setImageResource(coverPlaceholderRes)
 
         setupRecyclerViews()
@@ -244,7 +250,9 @@ class MainActivity : AppCompatActivity() {
                 showUsbError()
                 return
             }
-            pathText.text = getString(R.string.status_usb_ready)
+            pathText.text = "USB • Music"
+            topSourceText.text = "Playing from USB > Music"
+            usbStatusText.text = "USB Connected"
             currentFolder = root
             openFolder(root)
             if (resume) playAll(root, true)
@@ -269,7 +277,10 @@ class MainActivity : AppCompatActivity() {
     private fun openFolder(folder: DocumentFile) {
         currentFolder = folder
         leftAdapter.setSelectedUri(folder.uri.toString())
-        pathText.text = folder.uri.path ?: getString(R.string.status_usb_ready)
+
+        val folderName = folder.name ?: "Music"
+        pathText.text = "USB • Music • $folderName"
+        topSourceText.text = "Playing from $folderName"
 
         mainScope.launch {
             runCatching { repository.listChildren(folder) }
@@ -382,6 +393,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun showUsbError() {
         pathText.text = getString(R.string.status_no_usb)
+        topSourceText.text = "Playing from -"
+        usbStatusText.text = "USB Disconnected"
         Toast.makeText(this, R.string.usb_disconnected, Toast.LENGTH_LONG).show()
     }
 
