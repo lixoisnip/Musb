@@ -78,6 +78,7 @@ class MainActivity : AppCompatActivity() {
     private var isShuffleOn = false
     private var repeatMode = Player.REPEAT_MODE_OFF
     private var isMuted = false
+    private var selectedLeftFolderUri: String? = null
 
     private val clockRunnable = object : Runnable {
         override fun run() {
@@ -269,7 +270,10 @@ class MainActivity : AppCompatActivity() {
     private fun setupRecyclerViews() {
         leftAdapter = FileEntryAdapter(
             showPlayFolderButton = true,
-            onFolderClick = { folder -> openFolder(folder) },
+            onFolderClick = { folder ->
+                selectLeftFolder(folder.uri.toString())
+                openFolder(folder)
+            },
             onFileClick = { file -> playSingle(file) },
             onPlayFolder = { folder -> playAll(folder, false) }
         )
@@ -343,6 +347,7 @@ class MainActivity : AppCompatActivity() {
             topSourceText.text = "Playing from USB > Music"
             usbStatusText.text = "USB Connected"
             currentFolder = root
+            selectedLeftFolderUri = null
             openFolder(root)
             if (resume) playAll(root, true)
         } catch (e: Exception) {
@@ -377,7 +382,13 @@ class MainActivity : AppCompatActivity() {
                     val audioFiles = items.filter { it.isFile && repository.isSupportedAudio(it.name) }
                     leftAdapter.submitList(folders)
                     rightAdapter.submitList(audioFiles)
-                    leftAdapter.setSelectedUri(folder.uri.toString())
+
+                    val activeLeftSelection = selectedLeftFolderUri
+                        ?.takeIf { selectedUri ->
+                            folders.any { it.uri.toString() == selectedUri }
+                        }
+                    leftAdapter.setSelectedUri(activeLeftSelection)
+                    selectedLeftFolderUri = activeLeftSelection
 
                     findViewById<TextView>(R.id.leftEmptyText).text =
                         if (folder == currentFolder) getString(R.string.no_subfolders_found) else getString(R.string.no_folders_found)
@@ -395,6 +406,11 @@ class MainActivity : AppCompatActivity() {
                     findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
                 }
         }
+    }
+
+    private fun selectLeftFolder(uri: String?) {
+        selectedLeftFolderUri = uri
+        leftAdapter.setSelectedUri(uri)
     }
 
     private fun loadCoverFromUri(uriString: String?) {
