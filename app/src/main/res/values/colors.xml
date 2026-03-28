@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_main">#0D0F12</color>
-    <color name="surface_topbar">#171A1F</color>
-    <color name="surface_panel_top">#20252B</color>
-    <color name="surface_panel_bottom">#1A1E24</color>
-    <color name="surface_variant">#272C33</color>
-    <color name="accent_amber">#E29A43</color>
-    <color name="accent_amber_soft">#A47236</color>
-    <color name="text_primary">#F6F7F8</color>
-    <color name="text_secondary">#CBD0D8</color>
-    <color name="text_muted">#9298A0</color>
-    <color name="stroke_subtle">#38414C</color>
-    <color name="list_item_bg">#1C2127</color>
-    <color name="list_item_selected">#30261C</color>
-    <color name="chip_bg">#2B3139</color>
-    <color name="control_bg">#242A31</color>
-    <color name="control_pressed">#2D353E</color>
+    <color name="bg_main">#111316</color>
+    <color name="surface_topbar">#191C20</color>
+    <color name="surface_panel_top">#23272C</color>
+    <color name="surface_panel_bottom">#1C2025</color>
+    <color name="surface_variant">#31363D</color>
+    <color name="accent_amber">#CF8A3A</color>
+    <color name="accent_amber_soft">#8C5D29</color>
+    <color name="text_primary">#F4F5F6</color>
+    <color name="text_secondary">#C0C6CE</color>
+    <color name="text_muted">#8D949D</color>
+    <color name="stroke_subtle">#3A414B</color>
+    <color name="list_item_bg">#1F242A</color>
+    <color name="list_item_selected">#4A331C</color>
+    <color name="chip_bg">#303740</color>
+    <color name="control_bg">#292F36</color>
+    <color name="control_pressed">#333A44</color>
 </resources>

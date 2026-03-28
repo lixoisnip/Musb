@@ -2,13 +2,13 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="6dp"
+    android:layout_marginBottom="5dp"
     android:background="@drawable/bg_list_item"
     android:gravity="center_vertical"
-    android:minHeight="66dp"
+    android:minHeight="52dp"
     android:orientation="horizontal"
-    android:paddingHorizontal="12dp"
-    android:paddingVertical="10dp">
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="8dp">
 
     <TextView
         android:id="@+id/entryName"
@@ -18,17 +18,17 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/list_item_text"
-        android:textSize="17sp" />
+        android:textSize="14sp" />
 
     <Button
         android:id="@+id/playFolderButton"
-        android:layout_width="84dp"
-        android:layout_height="38dp"
+        android:layout_width="74dp"
+        android:layout_height="32dp"
         android:background="@drawable/bg_folder_chip"
         android:paddingHorizontal="8dp"
         android:text="@string/play_all"
         android:textAllCaps="false"
         android:textColor="@color/text_primary"
-        android:textSize="11sp"
+        android:textSize="10sp"
         android:visibility="gone" />
 </LinearLayout>
