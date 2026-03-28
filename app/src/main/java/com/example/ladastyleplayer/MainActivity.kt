@@ -14,7 +14,7 @@ import android.os.Looper
 import android.util.Base64
 import android.widget.Button
 import android.widget.ImageView
-import android.widget.ProgressBar
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,7 +51,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var artistText: TextView
     private lateinit var albumText: TextView
     private lateinit var coverImage: ImageView
-    private lateinit var progressBar: ProgressBar
+    private lateinit var progressBar: SeekBar
     private lateinit var currentTimeText: TextView
     private lateinit var totalTimeText: TextView
     private lateinit var playPauseButton: Button
@@ -59,6 +59,9 @@ class MainActivity : AppCompatActivity() {
 
     private var currentFolder: DocumentFile? = null
     private val coverPlaceholderRes = android.R.drawable.ic_menu_report_image
+    private var latestDurationMs: Long = 0L
+    private var isUserSeeking = false
+    private var lastCoverUri: String? = null
 
     private val clockRunnable = object : Runnable {
         override fun run() {
@@ -133,6 +136,7 @@ class MainActivity : AppCompatActivity() {
         rightAdapter.setHighlightedUri(currentUri)
 
         val b64 = intent.getStringExtra(PlayerService.EXTRA_COVER_B64)
+        var didSetCoverFromBroadcast = false
         if (!b64.isNullOrBlank()) {
             runCatching {
                 val bytes = Base64.decode(b64, Base64.DEFAULT)
@@ -140,14 +144,21 @@ class MainActivity : AppCompatActivity() {
             }.onSuccess { bitmap ->
                 if (bitmap != null) {
                     coverImage.setImageBitmap(bitmap)
+                    lastCoverUri = currentUri
+                    didSetCoverFromBroadcast = true
                 } else {
                     loadCoverFromUri(currentUri)
                 }
             }.onFailure {
                 loadCoverFromUri(currentUri)
             }
-        } else if (intent.hasExtra(PlayerService.EXTRA_COVER_B64)) {
+        } else if (currentUri != lastCoverUri || isCoverPlaceholderVisible()) {
             loadCoverFromUri(currentUri)
+        }
+
+        if (!didSetCoverFromBroadcast && b64.isNullOrBlank() && currentUri == null) {
+            coverImage.setImageResource(coverPlaceholderRes)
+            lastCoverUri = null
         }
     }
 
@@ -168,6 +179,37 @@ class MainActivity : AppCompatActivity() {
         playPauseButton = findViewById(R.id.playPauseButton)
         usbStatusText = findViewById(R.id.usbStatusText)
         coverImage.setImageResource(coverPlaceholderRes)
+        progressBar.max = 1000
+        progressBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser || !isUserSeeking) return
+                val previewPositionMs = if (latestDurationMs > 0L) {
+                    (latestDurationMs * progress.toLong()) / progressBar.max.toLong()
+                } else {
+                    0L
+                }
+                currentTimeText.text = formatTime(previewPositionMs)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                isUserSeeking = true
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                val progress = seekBar?.progress ?: 0
+                val seekPositionMs = if (latestDurationMs > 0L) {
+                    (latestDurationMs * progress.toLong()) / progressBar.max.toLong()
+                } else {
+                    0L
+                }
+                isUserSeeking = false
+                startService(Intent(this@MainActivity, PlayerService::class.java).apply {
+                    action = PlayerService.ACTION_SEEK_TO
+                    putExtra(PlayerService.EXTRA_SEEK_POSITION_MS, seekPositionMs)
+                })
+                currentTimeText.text = formatTime(seekPositionMs)
+            }
+        })
 
         setupRecyclerViews()
         setupButtons()
@@ -221,13 +263,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
-        findViewById<Button>(R.id.browseButton).setOnClickListener {
-            chooseAudioLauncher.launch(arrayOf("audio/*"))
-        }
         findViewById<Button>(R.id.browseButton).setOnLongClickListener {
+            chooseAudioLauncher.launch(arrayOf("audio/*"))
+            true
+        }
+        findViewById<Button>(R.id.browseButton).setOnClickListener {
             chooseFolderLauncher.launch(null)
             Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
-            true
         }
         playPauseButton.setOnClickListener {
             startPlayerAction(PlayerService.ACTION_PLAY_PAUSE)
@@ -286,23 +328,15 @@ class MainActivity : AppCompatActivity() {
             runCatching { repository.listChildren(folder) }
                 .onSuccess { items ->
                     val folders = items.filter { it.isDirectory }
-                    val rightItems = if (folders.isNotEmpty()) {
-                        folders
-                    } else {
-                        items.filter { it.isFile && repository.isSupportedAudio(it.name) }
-                    }
+                    val audioFiles = items.filter { it.isFile && repository.isSupportedAudio(it.name) }
                     leftAdapter.submitList(folders)
-                    rightAdapter.submitList(rightItems)
+                    rightAdapter.submitList(audioFiles)
                     findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.no_folders_found)
-                    findViewById<TextView>(R.id.rightEmptyText).text = if (folders.isNotEmpty()) {
-                        getString(R.string.no_subfolders_found)
-                    } else {
-                        getString(R.string.no_supported_audio)
-                    }
+                    findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.no_supported_audio)
                     findViewById<TextView>(R.id.leftEmptyText).visibility =
                         if (folders.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
                     findViewById<TextView>(R.id.rightEmptyText).visibility =
-                        if (rightItems.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+                        if (audioFiles.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
                 }
                 .onFailure {
                     showUsbError()
@@ -315,6 +349,7 @@ class MainActivity : AppCompatActivity() {
     private fun loadCoverFromUri(uriString: String?) {
         if (uriString.isNullOrBlank()) {
             coverImage.setImageResource(coverPlaceholderRes)
+            lastCoverUri = null
             return
         }
         mainScope.launch {
@@ -330,8 +365,10 @@ class MainActivity : AppCompatActivity() {
 
             if (bitmap != null) {
                 coverImage.setImageBitmap(bitmap)
+                lastCoverUri = uriString
             } else {
                 coverImage.setImageResource(coverPlaceholderRes)
+                lastCoverUri = uriString
             }
         }
     }
@@ -378,10 +415,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateProgress(positionMs: Long, durationMs: Long) {
+        latestDurationMs = durationMs
         val safeDuration = if (durationMs > 0) durationMs else 1L
-        progressBar.progress = ((positionMs.coerceAtLeast(0L) * 1000L) / safeDuration).toInt()
-        currentTimeText.text = formatTime(positionMs)
+        if (!isUserSeeking) {
+            progressBar.progress = ((positionMs.coerceAtLeast(0L) * 1000L) / safeDuration).toInt()
+            currentTimeText.text = formatTime(positionMs)
+        }
         totalTimeText.text = if (durationMs > 0) formatTime(durationMs) else "00:00"
+    }
+
+    private fun isCoverPlaceholderVisible(): Boolean {
+        return coverImage.drawable?.constantState == getDrawable(coverPlaceholderRes)?.constantState
     }
 
     private fun formatTime(timeMs: Long): String {
