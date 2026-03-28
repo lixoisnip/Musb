@@ -72,40 +72,65 @@ class MainActivity : AppCompatActivity() {
 
     private val chooseFolderLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-            uri ?: return@registerForActivityResult
-            val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            contentResolver.takePersistableUriPermission(uri, takeFlags)
+            if (uri == null) {
+                Toast.makeText(this, R.string.folder_pick_cancelled, Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
+            }
+
+            if (!persistUriPermission(uri)) {
+                Toast.makeText(this, R.string.uri_permission_failed, Toast.LENGTH_LONG).show()
+                return@registerForActivityResult
+            }
+
             prefs.edit { putString(KEY_TREE_URI, uri.toString()) }
             openTree(uri)
         }
 
+    private val chooseAudioLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) {
+                Toast.makeText(this, R.string.file_pick_cancelled, Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
+            }
+            playSelectedAudio(uri)
+        }
+
     private val trackReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action != PlayerService.ACTION_TRACK_CHANGED) return
-
-            titleText.text = intent.getStringExtra(PlayerService.EXTRA_TITLE) ?: getString(R.string.no_track)
-            artistText.text = intent.getStringExtra(PlayerService.EXTRA_ARTIST) ?: getString(R.string.unknown_artist)
-            albumText.text = intent.getStringExtra(PlayerService.EXTRA_ALBUM) ?: getString(R.string.unknown_album)
-            playPauseButton.text = if (intent.getBooleanExtra(PlayerService.EXTRA_IS_PLAYING, false)) {
-                getString(R.string.pause_symbol)
-            } else {
-                getString(R.string.play_symbol)
+            when (intent?.action) {
+                PlayerService.ACTION_TRACK_CHANGED -> handleTrackChanged(intent)
+                PlayerService.ACTION_PLAYBACK_ERROR -> {
+                    val reason = intent.getStringExtra(PlayerService.EXTRA_ERROR_MESSAGE)
+                        ?: getString(R.string.playback_failed)
+                    Toast.makeText(this@MainActivity, reason, Toast.LENGTH_LONG).show()
+                }
             }
+        }
+    }
 
-            val durationMs = intent.getLongExtra(PlayerService.EXTRA_DURATION_MS, 0L)
-            val positionMs = intent.getLongExtra(PlayerService.EXTRA_POSITION_MS, 0L)
-            updateProgress(positionMs, durationMs)
+    private fun handleTrackChanged(intent: Intent) {
+        titleText.text = intent.getStringExtra(PlayerService.EXTRA_TITLE) ?: getString(R.string.no_track)
+        artistText.text = intent.getStringExtra(PlayerService.EXTRA_ARTIST) ?: getString(R.string.unknown_artist)
+        albumText.text = intent.getStringExtra(PlayerService.EXTRA_ALBUM) ?: getString(R.string.unknown_album)
+        playPauseButton.text = if (intent.getBooleanExtra(PlayerService.EXTRA_IS_PLAYING, false)) {
+            getString(R.string.pause_symbol)
+        } else {
+            getString(R.string.play_symbol)
+        }
 
-            val currentUri = intent.getStringExtra(PlayerService.EXTRA_CURRENT_URI)
-            rightAdapter.setHighlightedUri(currentUri)
+        val durationMs = intent.getLongExtra(PlayerService.EXTRA_DURATION_MS, 0L)
+        val positionMs = intent.getLongExtra(PlayerService.EXTRA_POSITION_MS, 0L)
+        updateProgress(positionMs, durationMs)
 
-            val b64 = intent.getStringExtra(PlayerService.EXTRA_COVER_B64)
-            if (!b64.isNullOrBlank()) {
-                val bytes = Base64.decode(b64, Base64.DEFAULT)
-                coverImage.setImageBitmap(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
-            } else if (intent.hasExtra(PlayerService.EXTRA_COVER_B64)) {
-                coverImage.setImageResource(android.R.drawable.ic_menu_report_image)
-            }
+        val currentUri = intent.getStringExtra(PlayerService.EXTRA_CURRENT_URI)
+        rightAdapter.setHighlightedUri(currentUri)
+
+        val b64 = intent.getStringExtra(PlayerService.EXTRA_COVER_B64)
+        if (!b64.isNullOrBlank()) {
+            val bytes = Base64.decode(b64, Base64.DEFAULT)
+            coverImage.setImageBitmap(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
+        } else if (intent.hasExtra(PlayerService.EXTRA_COVER_B64)) {
+            coverImage.setImageResource(android.R.drawable.ic_menu_report_image)
         }
     }
 
@@ -135,7 +160,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        registerReceiverCompat(trackReceiver, IntentFilter(PlayerService.ACTION_TRACK_CHANGED))
+        val filter = IntentFilter().apply {
+            addAction(PlayerService.ACTION_TRACK_CHANGED)
+            addAction(PlayerService.ACTION_PLAYBACK_ERROR)
+        }
+        registerReceiverCompat(trackReceiver, filter)
         uiHandler.post(clockRunnable)
         uiHandler.post(playerProgressPoller)
     }
@@ -173,7 +202,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupButtons() {
         findViewById<Button>(R.id.browseButton).setOnClickListener {
+            chooseAudioLauncher.launch(arrayOf("audio/*"))
+        }
+        findViewById<Button>(R.id.browseButton).setOnLongClickListener {
             chooseFolderLauncher.launch(null)
+            Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
+            true
         }
         playPauseButton.setOnClickListener {
             startPlayerAction(PlayerService.ACTION_PLAY_PAUSE)
@@ -203,6 +237,19 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             showUsbError()
         }
+    }
+
+    private fun playSelectedAudio(uri: Uri) {
+        if (!persistUriPermission(uri)) {
+            Toast.makeText(this, R.string.uri_permission_failed, Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val intent = Intent(this, PlayerService::class.java).apply {
+            action = PlayerService.ACTION_PLAY_SINGLE
+            putExtra(PlayerService.EXTRA_SINGLE_URI, uri.toString())
+        }
+        startService(intent)
     }
 
     private fun openFolder(folder: DocumentFile) {
@@ -251,6 +298,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun startPlayerAction(action: String) {
         startService(Intent(this, PlayerService::class.java).setAction(action))
+    }
+
+    private fun persistUriPermission(uri: Uri): Boolean {
+        return try {
+            val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            contentResolver.takePersistableUriPermission(uri, takeFlags)
+            true
+        } catch (e: SecurityException) {
+            false
+        } catch (e: IllegalArgumentException) {
+            false
+        }
     }
 
     private fun updateProgress(positionMs: Long, durationMs: Long) {
