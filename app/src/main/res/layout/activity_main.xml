@@ -80,6 +80,17 @@
                 android:layout_weight="1"
                 android:clipToPadding="false"
                 android:paddingBottom="4dp" />
+
+            <TextView
+                android:id="@+id/leftEmptyText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingTop="8dp"
+                android:text="@string/no_folders_found"
+                android:textColor="@color/text_muted"
+                android:textSize="12sp"
+                android:visibility="gone" />
         </LinearLayout>
 
         <LinearLayout
@@ -211,6 +222,17 @@
                 android:layout_weight="1"
                 android:clipToPadding="false"
                 android:paddingBottom="4dp" />
+
+            <TextView
+                android:id="@+id/rightEmptyText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingTop="8dp"
+                android:text="@string/no_supported_audio"
+                android:textColor="@color/text_muted"
+                android:textSize="12sp"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 
