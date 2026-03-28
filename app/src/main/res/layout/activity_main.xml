@@ -229,12 +229,10 @@
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
-            <ProgressBar
+            <SeekBar
                 android:id="@+id/progressBar"
-                style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="5dp"
-                android:indeterminate="false"
+                android:layout_height="wrap_content"
                 android:max="1000"
                 android:progress="0"
                 android:progressBackgroundTint="@color/surface_variant"

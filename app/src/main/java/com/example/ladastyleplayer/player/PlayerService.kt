@@ -74,10 +74,17 @@ class PlayerService : Service() {
             ACTION_PLAY_PAUSE -> togglePlayPause()
             ACTION_NEXT -> player.seekToNextMediaItem()
             ACTION_PREV -> player.seekToPreviousMediaItem()
+            ACTION_SEEK_TO -> seekTo(intent.getLongExtra(EXTRA_SEEK_POSITION_MS, 0L))
             ACTION_TOGGLE_MUTE -> toggleMute()
             ACTION_REPORT_STATE -> sendTrackChanged(includeCover = false)
         }
         return START_STICKY
+    }
+
+    private fun seekTo(positionMs: Long) {
+        val target = positionMs.coerceAtLeast(0L)
+        player.seekTo(target)
+        sendTrackChanged(includeCover = false)
     }
 
     private fun handlePlayFolder(intent: Intent) {
@@ -209,6 +216,7 @@ class PlayerService : Service() {
         const val ACTION_TOGGLE_MUTE = "com.example.ladastyleplayer.action.TOGGLE_MUTE"
         const val ACTION_NEXT = "com.example.ladastyleplayer.action.NEXT"
         const val ACTION_PREV = "com.example.ladastyleplayer.action.PREV"
+        const val ACTION_SEEK_TO = "com.example.ladastyleplayer.action.SEEK_TO"
         const val ACTION_REPORT_STATE = "com.example.ladastyleplayer.action.REPORT_STATE"
         const val ACTION_TRACK_CHANGED = "com.example.ladastyleplayer.action.TRACK_CHANGED"
         const val ACTION_PLAYBACK_ERROR = "com.example.ladastyleplayer.action.PLAYBACK_ERROR"
@@ -224,6 +232,7 @@ class PlayerService : Service() {
         const val EXTRA_DURATION_MS = "duration_ms"
         const val EXTRA_IS_PLAYING = "is_playing"
         const val EXTRA_COVER_B64 = "cover_b64"
+        const val EXTRA_SEEK_POSITION_MS = "seek_position_ms"
         const val EXTRA_ERROR_MESSAGE = "error_message"
     }
 }
