@@ -12,4 +12,10 @@
     <string name="play_all">Играть всё</string>
     <string name="usb_disconnected">USB отключён, выберите папку заново</string>
     <string name="choose_folder">Выберите папку USB</string>
+    <string name="folder_picker_hint">Открыт выбор папки (долгое нажатие)</string>
+    <string name="file_pick_cancelled">Выбор аудиофайла отменён</string>
+    <string name="folder_pick_cancelled">Выбор папки отменён</string>
+    <string name="uri_permission_failed">Нет доступа к выбранному элементу</string>
+    <string name="playback_failed">Не удалось воспроизвести выбранный файл</string>
+    <string name="no_supported_audio">Поддерживаемые аудиофайлы не найдены</string>
 </resources>

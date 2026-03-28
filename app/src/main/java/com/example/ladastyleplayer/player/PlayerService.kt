@@ -59,6 +59,7 @@ class PlayerService : Service() {
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 Log.w(TAG, "Playback error, skipping", error)
+                sendPlaybackError(getString(R.string.playback_failed))
                 player.seekToNextMediaItem()
             }
         })
@@ -79,7 +80,10 @@ class PlayerService : Service() {
 
     private fun handlePlayFolder(intent: Intent) {
         val uris = intent.getStringArrayListExtra(EXTRA_URI_LIST)?.map(Uri::parse).orEmpty()
-        if (uris.isEmpty()) return
+        if (uris.isEmpty()) {
+            sendPlaybackError(getString(R.string.no_supported_audio))
+            return
+        }
         val items = uris.map { MediaItem.fromUri(it) }
         player.setMediaItems(items)
         player.prepare()
@@ -93,7 +97,11 @@ class PlayerService : Service() {
     }
 
     private fun handlePlaySingle(intent: Intent) {
-        val uri = intent.getStringExtra(EXTRA_SINGLE_URI)?.let(Uri::parse) ?: return
+        val uri = intent.getStringExtra(EXTRA_SINGLE_URI)?.let(Uri::parse)
+        if (uri == null) {
+            sendPlaybackError(getString(R.string.playback_failed))
+            return
+        }
         player.setMediaItem(MediaItem.fromUri(uri))
         player.prepare()
         player.playWhenReady = true
@@ -132,6 +140,13 @@ class PlayerService : Service() {
             }
         }
 
+        sendBroadcast(intent)
+    }
+
+    private fun sendPlaybackError(message: String) {
+        val intent = Intent(ACTION_PLAYBACK_ERROR).apply {
+            putExtra(EXTRA_ERROR_MESSAGE, message)
+        }
         sendBroadcast(intent)
     }
 
@@ -194,6 +209,7 @@ class PlayerService : Service() {
         const val ACTION_PREV = "com.example.ladastyleplayer.action.PREV"
         const val ACTION_REPORT_STATE = "com.example.ladastyleplayer.action.REPORT_STATE"
         const val ACTION_TRACK_CHANGED = "com.example.ladastyleplayer.action.TRACK_CHANGED"
+        const val ACTION_PLAYBACK_ERROR = "com.example.ladastyleplayer.action.PLAYBACK_ERROR"
 
         const val EXTRA_URI_LIST = "extra_uri_list"
         const val EXTRA_RESUME = "extra_resume"
@@ -206,5 +222,6 @@ class PlayerService : Service() {
         const val EXTRA_DURATION_MS = "duration_ms"
         const val EXTRA_IS_PLAYING = "is_playing"
         const val EXTRA_COVER_B64 = "cover_b64"
+        const val EXTRA_ERROR_MESSAGE = "error_message"
     }
 }
