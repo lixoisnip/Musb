@@ -25,6 +25,7 @@ class PlayerService : Service() {
     private var currentTitle: String = ""
     private var currentArtist: String = ""
     private var currentAlbum: String = ""
+    private var currentCoverBase64: String? = null
     private var currentUri: Uri? = null
     private var muted = false
 
@@ -44,13 +45,14 @@ class PlayerService : Service() {
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 currentUri = mediaItem?.localConfiguration?.uri
-                currentTitle = mediaItem?.mediaMetadata?.title?.toString()
+                val metadata = currentUri?.let { extractMetadata(it) }
+                currentTitle = metadata?.title
+                    ?: mediaItem?.mediaMetadata?.title?.toString()
                     ?: currentUri?.lastPathSegment
                     ?: getString(R.string.no_track)
-
-                val metadata = currentUri?.let { extractMetadata(it) }
                 currentArtist = metadata?.artist ?: ""
                 currentAlbum = metadata?.album ?: ""
+                currentCoverBase64 = metadata?.coverBase64
 
                 sendTrackChanged(includeCover = true)
                 updateNotification(player.isPlaying)
@@ -135,9 +137,7 @@ class PlayerService : Service() {
         intent.putExtra(EXTRA_CURRENT_URI, currentUri?.toString())
 
         if (includeCover) {
-            currentUri?.let {
-                extractMetadata(it)?.coverBase64?.let { b64 -> intent.putExtra(EXTRA_COVER_B64, b64) }
-            }
+            intent.putExtra(EXTRA_COVER_B64, currentCoverBase64)
         }
 
         sendBroadcast(intent)
@@ -155,9 +155,10 @@ class PlayerService : Service() {
             val retriever = MediaMetadataRetriever()
             retriever.setDataSource(this, uri)
             val metadata = TrackMetadata(
+                title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE),
                 artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST),
                 album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM),
-                coverBase64 = retriever.embeddedPicture?.let { Base64.encodeToString(it, Base64.DEFAULT) }
+                coverBase64 = retriever.embeddedPicture?.let { Base64.encodeToString(it, Base64.NO_WRAP) }
             )
             retriever.release()
             metadata
@@ -188,6 +189,7 @@ class PlayerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     data class TrackMetadata(
+        val title: String?,
         val artist: String?,
         val album: String?,
         val coverBase64: String?

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -28,6 +29,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -54,6 +56,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var playPauseButton: Button
 
     private var currentFolder: DocumentFile? = null
+    private val coverPlaceholderRes = android.R.drawable.ic_menu_report_image
 
     private val clockRunnable = object : Runnable {
         override fun run() {
@@ -127,10 +130,20 @@ class MainActivity : AppCompatActivity() {
 
         val b64 = intent.getStringExtra(PlayerService.EXTRA_COVER_B64)
         if (!b64.isNullOrBlank()) {
-            val bytes = Base64.decode(b64, Base64.DEFAULT)
-            coverImage.setImageBitmap(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
+            runCatching {
+                val bytes = Base64.decode(b64, Base64.DEFAULT)
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            }.onSuccess { bitmap ->
+                if (bitmap != null) {
+                    coverImage.setImageBitmap(bitmap)
+                } else {
+                    loadCoverFromUri(currentUri)
+                }
+            }.onFailure {
+                loadCoverFromUri(currentUri)
+            }
         } else if (intent.hasExtra(PlayerService.EXTRA_COVER_B64)) {
-            coverImage.setImageDrawable(null)
+            loadCoverFromUri(currentUri)
         }
     }
 
@@ -148,6 +161,7 @@ class MainActivity : AppCompatActivity() {
         currentTimeText = findViewById(R.id.currentTimeText)
         totalTimeText = findViewById(R.id.totalTimeText)
         playPauseButton = findViewById(R.id.playPauseButton)
+        coverImage.setImageResource(coverPlaceholderRes)
 
         setupRecyclerViews()
         setupButtons()
@@ -261,13 +275,53 @@ class MainActivity : AppCompatActivity() {
             runCatching { repository.listChildren(folder) }
                 .onSuccess { items ->
                     val folders = items.filter { it.isDirectory }
-                    val files = items.filter { it.isFile }
+                    val rightItems = if (folders.isNotEmpty()) {
+                        folders
+                    } else {
+                        items.filter { it.isFile && repository.isSupportedAudio(it.name) }
+                    }
                     leftAdapter.submitList(folders)
-                    rightAdapter.submitList(files)
+                    rightAdapter.submitList(rightItems)
+                    findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.no_folders_found)
+                    findViewById<TextView>(R.id.rightEmptyText).text = if (folders.isNotEmpty()) {
+                        getString(R.string.no_subfolders_found)
+                    } else {
+                        getString(R.string.no_supported_audio)
+                    }
+                    findViewById<TextView>(R.id.leftEmptyText).visibility =
+                        if (folders.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+                    findViewById<TextView>(R.id.rightEmptyText).visibility =
+                        if (rightItems.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
                 }
                 .onFailure {
                     showUsbError()
+                    findViewById<TextView>(R.id.leftEmptyText).visibility = android.view.View.VISIBLE
+                    findViewById<TextView>(R.id.rightEmptyText).visibility = android.view.View.VISIBLE
                 }
+        }
+    }
+
+    private fun loadCoverFromUri(uriString: String?) {
+        if (uriString.isNullOrBlank()) {
+            coverImage.setImageResource(coverPlaceholderRes)
+            return
+        }
+        mainScope.launch {
+            val bitmap = withContext(Dispatchers.IO) {
+                runCatching {
+                    val retriever = MediaMetadataRetriever()
+                    retriever.setDataSource(this@MainActivity, Uri.parse(uriString))
+                    val imageBytes = retriever.embeddedPicture
+                    retriever.release()
+                    imageBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+                }.getOrNull()
+            }
+
+            if (bitmap != null) {
+                coverImage.setImageBitmap(bitmap)
+            } else {
+                coverImage.setImageResource(coverPlaceholderRes)
+            }
         }
     }
 
