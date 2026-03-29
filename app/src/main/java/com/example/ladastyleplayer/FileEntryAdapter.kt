@@ -68,6 +68,10 @@ class FileEntryAdapter(
             holder.duration.visibility = View.GONE
             holder.playFolder.visibility = View.GONE
             holder.itemView.isActivated = false
+            holder.name.isActivated = false
+            holder.icon.isActivated = false
+            holder.duration.isActivated = false
+            holder.itemView.setPadding(dp(holder.itemView, BASE_PADDING_DP), holder.itemView.paddingTop, holder.itemView.paddingRight, holder.itemView.paddingBottom)
             holder.itemView.setOnClickListener { onUpClick?.invoke() }
             return
         }
@@ -76,7 +80,12 @@ class FileEntryAdapter(
         holder.name.text = documentFile.name ?: "-"
 
         val uri = documentFile.uri.toString()
-        holder.itemView.isActivated = uri == selectedUri || uri == highlightedUri
+        val isActive = uri == selectedUri || uri == highlightedUri
+        holder.itemView.isActivated = isActive
+        holder.name.isActivated = isActive
+        holder.icon.isActivated = isActive
+        holder.duration.isActivated = isActive
+        holder.itemView.setPadding(resolveStartPadding(documentFile), holder.itemView.paddingTop, holder.itemView.paddingRight, holder.itemView.paddingBottom)
 
         if (documentFile.isDirectory) {
             holder.icon.text = "📁"
@@ -105,7 +114,19 @@ class FileEntryAdapter(
         val playFolder: Button = view.findViewById(R.id.playFolderButton)
     }
 
+    private fun resolveStartPadding(documentFile: DocumentFile): Int {
+        val depth = documentFile.uri.path?.count { it == '/' } ?: 0
+        val nestedLevel = (depth - 4).coerceIn(0, 3)
+        return BASE_PADDING_DP + (nestedLevel * INDENT_STEP_DP)
+    }
+
+    private fun dp(view: View, value: Int): Int {
+        return (value * view.resources.displayMetrics.density).toInt()
+    }
+
     companion object {
         private const val TAG = "FileEntryAdapter"
+        private const val BASE_PADDING_DP = 12
+        private const val INDENT_STEP_DP = 8
     }
 }

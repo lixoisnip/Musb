@@ -3,14 +3,14 @@
     android:id="@+id/entryRoot"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="6dp"
+    android:layout_marginBottom="5dp"
     android:background="@drawable/bg_list_item"
     android:gravity="center_vertical"
-    android:minHeight="54dp"
+    android:minHeight="56dp"
     android:orientation="horizontal"
-    android:paddingStart="11dp"
+    android:paddingStart="12dp"
     android:paddingTop="8dp"
-    android:paddingEnd="10dp"
+    android:paddingEnd="11dp"
     android:paddingBottom="8dp">
 
     <TextView
@@ -19,19 +19,19 @@
         android:layout_height="20dp"
         android:gravity="center"
         android:text="📁"
-        android:textColor="@color/text_secondary"
+        android:textColor="@color/list_item_meta_text"
         android:textSize="11sp" />
 
     <TextView
         android:id="@+id/entryName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
+        android:layout_marginStart="11dp"
         android:layout_weight="1"
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/list_item_text"
-        android:textSize="14sp"
+        android:textSize="14.5sp"
         android:textStyle="bold" />
 
     <TextView
@@ -40,7 +40,7 @@
         android:layout_height="wrap_content"
         android:gravity="end"
         android:text="--:--"
-        android:textColor="@color/text_muted"
+        android:textColor="@color/list_item_meta_text"
         android:textSize="10sp"
         android:visibility="gone" />
 
