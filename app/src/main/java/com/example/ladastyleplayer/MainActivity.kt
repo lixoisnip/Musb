@@ -384,14 +384,16 @@ class MainActivity : AppCompatActivity() {
         currentTrackUri = uri.toString()
         rightAdapter.setHighlightedUri(currentTrackUri)
 
-        val parentFolder = resolveParentFolderFromPickedFile(uri)
-        if (parentFolder != null) {
-            Log.d(TAG, "playSelectedAudio resolved parent folder uri=${parentFolder.uri}")
-            selectLeftFolder(null)
-            openFolder(parentFolder)
-        } else {
-            Log.d(TAG, "playSelectedAudio fallback: folder context unavailable for uri=$uri")
-            Toast.makeText(this, R.string.file_context_unavailable, Toast.LENGTH_SHORT).show()
+        mainScope.launch {
+            val parentFolder = resolveParentFolderFromPickedFile(uri)
+            if (parentFolder != null) {
+                Log.d(TAG, "playSelectedAudio resolved parent folder uri=${parentFolder.uri}")
+                selectLeftFolder(null)
+                openFolder(parentFolder)
+            } else {
+                Log.d(TAG, "playSelectedAudio fallback: folder context unavailable for uri=$uri")
+                Toast.makeText(this@MainActivity, R.string.file_context_unavailable, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -443,7 +445,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun resolveParentFolderFromPickedFile(fileUri: Uri): DocumentFile? {
+    private suspend fun resolveParentFolderFromPickedFile(fileUri: Uri): DocumentFile? {
         val authority = fileUri.authority
         if (authority.isNullOrBlank()) {
             Log.d(TAG, "resolveParentFolderFromPickedFile skipped: missing authority uri=$fileUri")
