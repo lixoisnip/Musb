@@ -14,7 +14,7 @@ import android.os.Looper
 import android.util.Log
 import android.util.Base64
 import android.view.View
-import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
@@ -58,13 +58,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progressBar: SeekBar
     private lateinit var currentTimeText: TextView
     private lateinit var totalTimeText: TextView
-    private lateinit var playPauseButton: Button
-    private lateinit var seekButton: Button
-    private lateinit var shuffleButton: Button
-    private lateinit var repeatButton: Button
-    private lateinit var listButton: Button
-    private lateinit var infoButton: Button
-    private lateinit var muteButton: Button
+    private lateinit var playPauseButton: ImageButton
+    private lateinit var seekButton: ImageButton
+    private lateinit var shuffleButton: ImageButton
+    private lateinit var repeatButton: ImageButton
+    private lateinit var listButton: ImageButton
+    private lateinit var infoButton: ImageButton
+    private lateinit var muteButton: ImageButton
     private lateinit var usbStatusText: TextView
     private lateinit var rightRecycler: RecyclerView
     private lateinit var rightPanel: View
@@ -142,7 +142,7 @@ class MainActivity : AppCompatActivity() {
         topSourceText.text = "Playing from ${albumText.text}"
 
         val isPlaying = intent.getBooleanExtra(PlayerService.EXTRA_IS_PLAYING, false)
-        playPauseButton.text = if (isPlaying) getString(R.string.pause_symbol) else getString(R.string.play_symbol)
+        playPauseButton.setImageResource(if (isPlaying) R.drawable.ic_transport_pause else R.drawable.ic_transport_play)
 
         isMuted = intent.getBooleanExtra(PlayerService.EXTRA_IS_MUTED, isMuted)
         isShuffleOn = intent.getBooleanExtra(PlayerService.EXTRA_SHUFFLE_ENABLED, isShuffleOn)
@@ -297,21 +297,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
-        findViewById<Button>(R.id.browseButton).setOnLongClickListener {
+        findViewById<ImageButton>(R.id.browseButton).setOnLongClickListener {
             chooseAudioLauncher.launch(arrayOf("audio/*"))
             true
         }
-        findViewById<Button>(R.id.browseButton).setOnClickListener {
+        findViewById<ImageButton>(R.id.browseButton).setOnClickListener {
             chooseFolderLauncher.launch(null)
             Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
         }
         playPauseButton.setOnClickListener {
             startPlayerAction(PlayerService.ACTION_PLAY_PAUSE)
         }
-        findViewById<Button>(R.id.nextButton).setOnClickListener {
+        findViewById<ImageButton>(R.id.nextButton).setOnClickListener {
             startPlayerAction(PlayerService.ACTION_NEXT)
         }
-        findViewById<Button>(R.id.prevButton).setOnClickListener {
+        findViewById<ImageButton>(R.id.prevButton).setOnClickListener {
             startPlayerAction(PlayerService.ACTION_PREV)
         }
         muteButton.setOnClickListener {
@@ -548,15 +548,13 @@ class MainActivity : AppCompatActivity() {
     private fun applyControlStates() {
         shuffleButton.isActivated = isShuffleOn
         repeatButton.isActivated = repeatMode != Player.REPEAT_MODE_OFF
-        repeatButton.text = when (repeatMode) {
-            Player.REPEAT_MODE_ONE -> getString(R.string.repeat_one_symbol)
-            Player.REPEAT_MODE_ALL -> getString(R.string.repeat_all_symbol)
-            else -> getString(R.string.repeat_off_symbol)
-        }
+        repeatButton.setImageResource(
+            if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.ic_transport_repeat_one else R.drawable.ic_transport_repeat
+        )
         listButton.isActivated = isPlaylistFocused
         rightPanel.isActivated = isPlaylistFocused
         muteButton.isActivated = isMuted
-        muteButton.text = if (isMuted) getString(R.string.mute_symbol) else getString(R.string.unmute_symbol)
+        muteButton.setImageResource(if (isMuted) R.drawable.ic_transport_volume_off else R.drawable.ic_transport_volume_on)
     }
 
     private fun isCoverPlaceholderVisible(): Boolean {

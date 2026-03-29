@@ -1,15 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_pressed="true">
-        <shape android:shape="oval">
-            <gradient android:angle="270" android:startColor="#69411F" android:endColor="#4C2F17" />
-            <stroke android:width="3dp" android:color="@color/accent_amber" />
-        </shape>
+        <layer-list>
+            <item>
+                <shape android:shape="oval">
+                    <solid android:color="#11161C" />
+                    <stroke android:width="3dp" android:color="@color/control_center_ring_pressed" />
+                </shape>
+            </item>
+            <item android:top="8dp" android:bottom="8dp" android:left="8dp" android:right="8dp">
+                <shape android:shape="oval">
+                    <gradient
+                        android:angle="270"
+                        android:endColor="@color/control_center_inner_pressed_bottom"
+                        android:startColor="@color/control_center_inner_pressed_top" />
+                </shape>
+            </item>
+        </layer-list>
     </item>
     <item>
-        <shape android:shape="oval">
-            <gradient android:angle="270" android:startColor="#3A414B" android:endColor="#222831" />
-            <stroke android:width="3dp" android:color="@color/accent_amber_soft" />
-        </shape>
+        <layer-list>
+            <item>
+                <shape android:shape="oval">
+                    <solid android:color="#10151B" />
+                    <stroke android:width="3dp" android:color="@color/control_center_ring" />
+                </shape>
+            </item>
+            <item android:top="8dp" android:bottom="8dp" android:left="8dp" android:right="8dp">
+                <shape android:shape="oval">
+                    <gradient
+                        android:angle="270"
+                        android:endColor="@color/control_center_inner_bottom"
+                        android:startColor="@color/control_center_inner_top" />
+                </shape>
+            </item>
+        </layer-list>
     </item>
 </selector>

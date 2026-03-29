@@ -16,9 +16,25 @@
     <color name="list_item_selected">#6A4522</color>
     <color name="list_item_selected_top">#8E5D2B</color>
     <color name="chip_bg">#2A313A</color>
-    <color name="control_bg">#252C35</color>
-    <color name="control_pressed">#353F4B</color>
-    <color name="control_disabled">#1B2028</color>
-    <color name="control_active_top">#7E5126</color>
-    <color name="control_active_bottom">#5E3A1C</color>
+
+    <color name="control_small_top">#262D35</color>
+    <color name="control_small_bottom">#181E25</color>
+    <color name="control_small_pressed_top">#2F3741</color>
+    <color name="control_small_pressed_bottom">#202730</color>
+    <color name="control_small_active_top">#2C333C</color>
+    <color name="control_small_active_bottom">#1D242C</color>
+    <color name="control_small_disabled_top">#1A2027</color>
+    <color name="control_small_disabled_bottom">#13181F</color>
+    <color name="control_small_stroke">#434C58</color>
+    <color name="control_small_stroke_active">#66707D</color>
+
+    <color name="control_center_inner_top">#2B333C</color>
+    <color name="control_center_inner_bottom">#1B2128</color>
+    <color name="control_center_inner_pressed_top">#343D47</color>
+    <color name="control_center_inner_pressed_bottom">#212831</color>
+    <color name="control_center_ring">#B67934</color>
+    <color name="control_center_ring_pressed">#D59543</color>
+
+    <color name="control_icon_tint">#F0F3F7</color>
+    <color name="control_icon_tint_dim">#788290</color>
 </resources>
