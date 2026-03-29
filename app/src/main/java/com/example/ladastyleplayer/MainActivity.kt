@@ -244,7 +244,7 @@ class MainActivity : AppCompatActivity() {
         applyControlStates()
 
         loadPersistedSources()
-        refreshExplorerFromSelectedRoot()
+        syncInitialFolderContext()
     }
 
     override fun onStart() {
@@ -341,7 +341,7 @@ class MainActivity : AppCompatActivity() {
     private fun registerSourceRoot(uri: Uri) {
         saveSourceUri(uri)
         loadPersistedSources(selectedUri = uri.toString())
-        refreshExplorerFromSelectedRoot()
+        syncInitialFolderContext()
     }
 
     private fun openTree(uri: Uri) {
@@ -374,6 +374,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             registerSourceRoot(uri)
+            renderFolderContext(root, currentTrackUri)
         }
     }
 
@@ -462,101 +463,70 @@ class MainActivity : AppCompatActivity() {
         return if (canListChildren) folder else null
     }
 
-    private fun refreshExplorerFromSelectedRoot() {
-        val activeRootUri = selectedRootUri
-        if (activeRootUri == null) {
-            usbStatusText.text = getString(R.string.status_no_sources)
-            leftAdapter.submitList(emptyList())
-            rightAdapter.submitList(emptyList())
-            findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.add_music_source)
-            findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
-            findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.select_source_hint)
-            findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
-            return
+    private fun openBranch(folder: DocumentFile) {
+        Log.d(TAG, "left folder navigation change -> selectedUri=${folder.uri}")
+        mainScope.launch {
+            renderFolderContext(folder, currentTrackUri)
         }
-        val root = DocumentFile.fromTreeUri(this, activeRootUri)
-        Log.d(TAG, "refreshExplorerFromSelectedRoot(root=$activeRootUri)")
-        if (root == null || !root.exists()) {
+    }
+
+    private suspend fun renderFolderContext(
+        selectedFolder: DocumentFile,
+        selectedTrackUri: String?
+    ) {
+        if (!selectedFolder.exists() || !selectedFolder.isDirectory) {
             showUsbError()
             return
         }
+
+        selectedLeftFolder = selectedFolder
+        currentRightTrackScope = selectedFolder
+        val selectedFolderUri = selectedFolder.uri.toString()
+        selectLeftItem(selectedFolderUri)
+        Log.d(TAG, "selected left folder uri=$selectedFolderUri")
+
+        val rootFolder = resolveNavigationRoot(selectedFolder)
+        val breadcrumb = buildBreadcrumb(selectedFolder, rootFolder.uri)
+        currentBreadcrumb = breadcrumb
+        pathText.text = breadcrumb
+        topSourceText.text = getString(R.string.showing_music_in, breadcrumb)
         usbStatusText.text = getString(R.string.status_usb_connected)
-        renderFolderBranch(selectedFolder = root, rootFolder = root, selectedTrackUri = currentTrackUri)
+
+        val parent = resolveParentWithinRoot(selectedFolder, rootFolder)
+        val childFolders = runCatching { repository.listChildFoldersOnly(selectedFolder) }
+            .getOrElse {
+                Log.d(TAG, "renderFolderContext listChildFoldersOnly failed folder=${selectedFolder.uri}: ${it.message}")
+                emptyList()
+            }
+
+        val leftItems = mutableListOf<FileEntryAdapter.EntryItem>()
+        if (parent != null) {
+            leftItems.add(FileEntryAdapter.EntryItem(isUpItem = true))
+        }
+        leftItems.addAll(childFolders.map { FileEntryAdapter.EntryItem(documentFile = it) })
+        leftAdapter.submitList(leftItems)
+        findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.no_folders_found)
+        findViewById<TextView>(R.id.leftEmptyText).visibility = if (childFolders.isEmpty()) View.VISIBLE else View.GONE
+
+        val tracks = runCatching { repository.collectSupportedAudioRecursively(selectedFolder) }
+            .getOrElse {
+                Log.d(TAG, "renderFolderContext collectSupportedAudioRecursively failed folder=${selectedFolder.uri}: ${it.message}")
+                emptyList()
+            }
+        rightAdapter.submitList(tracks.map { FileEntryAdapter.EntryItem(documentFile = it) })
+        rightAdapter.setHighlightedUri(selectedTrackUri)
+        val wasHighlighted = rightAdapter.findPositionByUri(selectedTrackUri) != RecyclerView.NO_POSITION
+        Log.d(TAG, "right-panel track count=${tracks.size} selectedLeftFolderUri=${selectedFolder.uri} highlighted=$wasHighlighted")
+        findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.no_supported_audio)
+        findViewById<TextView>(R.id.rightEmptyText).visibility = if (tracks.isEmpty()) View.VISIBLE else View.GONE
     }
 
-    private fun openBranch(folder: DocumentFile) {
-        Log.d(TAG, "selected left folder uri=${folder.uri}")
-        selectedLeftFolder = folder
-        currentRightTrackScope = folder
-        selectLeftItem(folder.uri.toString())
+    private fun resolveNavigationRoot(selectedFolder: DocumentFile): DocumentFile {
         val root = selectedRootUri?.let { DocumentFile.fromTreeUri(this, it) }
-        if (root != null && isDescendantOfBranch(folder, root)) {
-            renderFolderBranch(folder, root, currentTrackUri)
-            return
+        if (root != null && root.exists() && isDescendantOfBranch(selectedFolder, root)) {
+            return root
         }
-        renderStandaloneFolderContext(folder, currentTrackUri)
-    }
-
-    private fun renderFolderBranch(
-        selectedFolder: DocumentFile,
-        rootFolder: DocumentFile,
-        selectedTrackUri: String?
-    ) {
-        mainScope.launch {
-            if (!rootFolder.exists()) {
-                showUsbError()
-                return@launch
-            }
-
-            val folderTree = runCatching { repository.collectFolderTree(selectedFolder) }.getOrElse {
-                Log.d(TAG, "renderFolderBranch tree failure root=${selectedFolder.uri}: ${it.message}")
-                showUsbError()
-                return@launch
-            }
-            val effectiveFolder = folderTree.firstOrNull()
-                ?.takeIf { it.uri == selectedFolder.uri }
-                ?: selectedFolder
-            selectedLeftFolder = effectiveFolder
-            currentRightTrackScope = effectiveFolder
-            val breadcrumb = buildBreadcrumb(effectiveFolder, rootFolder.uri)
-            currentBreadcrumb = breadcrumb
-            pathText.text = breadcrumb
-            topSourceText.text = getString(R.string.showing_music_in, breadcrumb)
-
-            val showUp = if (effectiveFolder.uri != rootFolder.uri) 1 else 0
-            val leftItems = ArrayList<FileEntryAdapter.EntryItem>(folderTree.size + showUp)
-            if (effectiveFolder.uri != rootFolder.uri) {
-                leftItems.add(FileEntryAdapter.EntryItem(isUpItem = true))
-            }
-            leftItems.addAll(folderTree.map { FileEntryAdapter.EntryItem(documentFile = it) })
-            leftAdapter.submitList(leftItems)
-            selectLeftItem(effectiveFolder.uri.toString())
-            findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.no_folders_found)
-            findViewById<TextView>(R.id.leftEmptyText).visibility = if (leftItems.isEmpty()) View.VISIBLE else View.GONE
-            renderRightTracksForSelectedFolder(effectiveFolder, selectedTrackUri)
-        }
-    }
-
-    private fun renderRightTracksForSelectedFolder(folder: DocumentFile, selectedTrackUri: String?) {
-        mainScope.launch {
-            runCatching { repository.collectSupportedAudioRecursively(folder) }
-                .onSuccess { tracks ->
-                    val rightItems = tracks.map { FileEntryAdapter.EntryItem(documentFile = it) }
-                    rightAdapter.submitList(rightItems)
-                    rightAdapter.setHighlightedUri(selectedTrackUri)
-                    val wasHighlighted = rightAdapter.findPositionByUri(selectedTrackUri) != RecyclerView.NO_POSITION
-                    Log.d(
-                        TAG,
-                        "right-panel track count=${tracks.size} selectedLeftFolderUri=${folder.uri} highlighted=$wasHighlighted"
-                    )
-                    findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.no_supported_audio)
-                    findViewById<TextView>(R.id.rightEmptyText).visibility = if (tracks.isEmpty()) View.VISIBLE else View.GONE
-                }
-                .onFailure {
-                    Log.d(TAG, "renderRightTracksForSelectedFolder failed folder=${folder.uri}: ${it.message}")
-                    findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
-                }
-        }
+        return selectedFolder
     }
 
     private suspend fun resolveContainingFolderFromPickedFile(fileUri: Uri): DocumentFile? {
@@ -630,41 +600,34 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun alignExplorerToFolder(folder: DocumentFile) {
         Log.d(TAG, "resolved containing folder uri=${folder.uri}")
-        val rootUri = selectedRootUri
-        if (rootUri != null) {
-            val root = DocumentFile.fromTreeUri(this, rootUri)
-            if (root != null && isDescendantOfBranch(folder, root)) {
-                renderFolderBranch(folder, root, currentTrackUri)
-                return
-            }
-        }
-        renderStandaloneFolderContext(folder, currentTrackUri)
+        renderFolderContext(folder, currentTrackUri)
     }
 
-    private fun renderStandaloneFolderContext(folder: DocumentFile, selectedTrackUri: String?) {
-        selectedLeftFolder = folder
-        currentRightTrackScope = folder
-        currentBreadcrumb = folder.name ?: "Music"
-        pathText.text = currentBreadcrumb
-        topSourceText.text = getString(R.string.showing_music_in, currentBreadcrumb)
-        usbStatusText.text = getString(R.string.status_usb_connected)
-        mainScope.launch {
-            val folderTree = runCatching { repository.collectFolderTree(folder) }.getOrElse {
-                leftAdapter.submitList(listOf(FileEntryAdapter.EntryItem(documentFile = folder)))
-                selectLeftItem(folder.uri.toString())
-                renderRightTracksForSelectedFolder(folder, selectedTrackUri)
-                return@launch
-            }
-            leftAdapter.submitList(folderTree.map { FileEntryAdapter.EntryItem(documentFile = it) })
-            selectLeftItem(folder.uri.toString())
-            findViewById<TextView>(R.id.leftEmptyText).visibility = View.GONE
-            renderRightTracksForSelectedFolder(folder, selectedTrackUri)
+    private fun syncInitialFolderContext() {
+        val rootUri = selectedRootUri
+        if (rootUri == null) {
+            usbStatusText.text = getString(R.string.status_no_sources)
+            pathText.text = getString(R.string.status_no_usb)
+            topSourceText.text = getString(R.string.top_source_placeholder)
+            leftAdapter.submitList(emptyList())
+            rightAdapter.submitList(emptyList())
+            findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.add_music_source)
+            findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
+            findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.select_source_hint)
+            findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
+            return
         }
+        val root = DocumentFile.fromTreeUri(this, rootUri)
+        if (root == null || !root.exists() || !root.isDirectory) {
+            showUsbError()
+            return
+        }
+        mainScope.launch { renderFolderContext(root, currentTrackUri) }
     }
 
     private fun navigateToParentFolder() {
         val current = selectedLeftFolder ?: return
-        val root = selectedRootUri?.let { DocumentFile.fromTreeUri(this, it) } ?: return
+        val root = resolveNavigationRoot(current)
         val parent = resolveParentWithinRoot(current, root) ?: return
         openBranch(parent)
     }
