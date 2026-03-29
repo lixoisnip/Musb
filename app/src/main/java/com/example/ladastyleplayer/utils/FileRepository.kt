@@ -1,6 +1,7 @@
 package com.example.ladastyleplayer.utils
 
 import androidx.documentfile.provider.DocumentFile
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -29,23 +30,27 @@ class FileRepository {
     suspend fun listSupportedAudioFiles(folder: DocumentFile): List<DocumentFile> = withContext(Dispatchers.IO) {
         folder.listFiles()
             .filter { it.isFile && isSupportedAudio(it.name) }
-            .sortedWith(entryComparator)
+            .let(::sortTracksStable)
     }
 
     /**
      * Returns true when [folder] has supported audio files directly or in descendants.
      */
     suspend fun hasMusicInBranch(folder: DocumentFile): Boolean = withContext(Dispatchers.IO) {
-        hasMusicInBranchInternal(folder)
+        val hasMusic = hasMusicInBranchInternal(folder)
+        Log.d(TAG, "hasMusicInBranch folder=${folder.uri} result=$hasMusic")
+        hasMusic
     }
 
     /**
      * Returns folder children that are meaningful for music browsing.
      */
     suspend fun collectMusicRelevantFolders(folder: DocumentFile): List<DocumentFile> = withContext(Dispatchers.IO) {
-        folder.listFiles()
+        val folders = folder.listFiles()
             .filter { it.isDirectory && hasMusicInBranchInternal(it) }
-            .sortedWith(entryComparator)
+            .let(::sortFoldersStable)
+        Log.d(TAG, "collectMusicRelevantFolders root=${folder.uri} size=${folders.size}")
+        folders
     }
 
     /**
@@ -54,7 +59,9 @@ class FileRepository {
     suspend fun collectSupportedAudioRecursively(folder: DocumentFile): List<DocumentFile> = withContext(Dispatchers.IO) {
         val result = mutableListOf<DocumentFile>()
         collectSupportedAudioRecursivelyInternal(folder, result)
-        result.sortedWith(entryComparator)
+        val sorted = sortTracksStable(result)
+        Log.d(TAG, "collectSupportedAudioRecursively folder=${folder.uri} tracks=${sorted.size}")
+        sorted
     }
 
     /**
@@ -65,15 +72,28 @@ class FileRepository {
     suspend fun collectBranchContent(folder: DocumentFile): BranchContent = withContext(Dispatchers.IO) {
         val relevantSubfolders = folder.listFiles()
             .filter { it.isDirectory && hasMusicInBranchInternal(it) }
-            .sortedWith(entryComparator)
+            .let(::sortFoldersStable)
 
         val files = mutableListOf<DocumentFile>()
         collectSupportedAudioRecursivelyInternal(folder, files)
+        val sortedFiles = sortTracksStable(files)
+        Log.d(
+            TAG,
+            "collectBranchContent folder=${folder.uri} subfolders=${relevantSubfolders.size} tracks=${sortedFiles.size}"
+        )
 
         BranchContent(
             subfolders = relevantSubfolders,
-            audioFiles = files.sortedWith(entryComparator)
+            audioFiles = sortedFiles
         )
+    }
+
+    fun sortFoldersStable(folders: List<DocumentFile>): List<DocumentFile> {
+        return folders.sortedWith(compareBy<DocumentFile>({ it.name?.lowercase(Locale.ROOT) ?: "" }, { it.uri.toString() }))
+    }
+
+    fun sortTracksStable(tracks: List<DocumentFile>): List<DocumentFile> {
+        return tracks.sortedWith(compareBy<DocumentFile>({ it.name?.lowercase(Locale.ROOT) ?: "" }, { it.uri.toString() }))
     }
 
     internal fun isSupportedAudio(name: String?): Boolean {
@@ -100,4 +120,8 @@ class FileRepository {
     }
 
     private val entryComparator = compareBy<DocumentFile>({ !it.isDirectory }, { it.name?.lowercase(Locale.ROOT) ?: "" })
+
+    companion object {
+        private const val TAG = "FileRepository"
+    }
 }
