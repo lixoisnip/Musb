@@ -10,6 +10,9 @@
     <string name="play_pause">Play/Pause</string>
     <string name="browse">Browse</string>
     <string name="play_all">Play All</string>
+    <string name="shuffle_label">Shuffle</string>
+    <string name="repeat_label">Repeat</string>
+    <string name="list_label">Playlist view</string>
     <string name="usb_disconnected">USB disconnected, choose folder again</string>
     <string name="choose_folder">Choose USB folder</string>
     <string name="folder_picker_hint">Folder picker opened (long press: single file)</string>

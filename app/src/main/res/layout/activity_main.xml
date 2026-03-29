@@ -294,57 +294,78 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:gravity="center"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp">
 
-            <Button
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/prevButton"
                 style="@style/ControlButtonSmall"
-                android:text="@string/prev_symbol" />
+                android:contentDescription="@string/prev"
+                android:src="@drawable/ic_transport_prev"
+                android:tint="@color/control_icon_tint_selector" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/seekButton"
                 style="@style/ControlButtonSmall"
-                android:text="@string/seek_symbol" />
+                android:contentDescription="@string/seek_forward_hint"
+                android:src="@drawable/ic_transport_seek"
+                android:tint="@color/control_icon_tint_selector" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/browseButton"
                 style="@style/ControlButtonSmall"
-                android:text="@string/browse_symbol" />
+                android:contentDescription="@string/browse"
+                android:src="@drawable/ic_transport_browse"
+                android:tint="@color/control_icon_tint_selector" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/shuffleButton"
                 style="@style/ControlButtonSmall"
-                android:text="@string/shuffle_symbol" />
+                android:contentDescription="@string/shuffle_label"
+                android:src="@drawable/ic_transport_shuffle"
+                android:tint="@color/control_icon_tint_selector" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/playPauseButton"
                 style="@style/ControlButtonCenter"
-                android:text="@string/play_symbol" />
+                android:contentDescription="@string/play_pause"
+                android:src="@drawable/ic_transport_play"
+                android:tint="@color/control_icon_tint_selector" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/repeatButton"
                 style="@style/ControlButtonSmall"
-                android:text="@string/repeat_symbol" />
+                android:contentDescription="@string/repeat_label"
+                android:src="@drawable/ic_transport_repeat"
+                android:tint="@color/control_icon_tint_selector" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/listButton"
                 style="@style/ControlButtonSmall"
-                android:text="@string/list_symbol" />
+                android:contentDescription="@string/list_label"
+                android:src="@drawable/ic_transport_list"
+                android:tint="@color/control_icon_tint_selector" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/commentButton"
                 style="@style/ControlButtonSmall"
-                android:text="@string/info_symbol" />
+                android:contentDescription="@string/track_info_title"
+                android:src="@drawable/ic_transport_info"
+                android:tint="@color/control_icon_tint_selector" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/muteButton"
                 style="@style/ControlButtonSmall"
-                android:text="@string/mute_symbol" />
+                android:contentDescription="@string/mute"
+                android:src="@drawable/ic_transport_volume_on"
+                android:tint="@color/control_icon_tint_selector" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/nextButton"
                 style="@style/ControlButtonSmall"
-                android:text="@string/next_symbol" />
+                android:contentDescription="@string/next"
+                android:src="@drawable/ic_transport_next"
+                android:tint="@color/control_icon_tint_selector" />
         </LinearLayout>
     </FrameLayout>
 
