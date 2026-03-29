@@ -366,13 +366,8 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "playSelectedAudio requested uri=$uri")
         val persistResult = persistUriPermission(uri)
         Log.d(TAG, "playSelectedAudio persistUriPermission(uri=$uri)=$persistResult")
-        val hasReadAccess = hasReadAccess(uri)
-        Log.d(TAG, "playSelectedAudio hasReadAccess(uri=$uri)=$hasReadAccess")
-
-        if (!persistResult && !hasReadAccess) {
-            Log.d(TAG, "playSelectedAudio blocked: no usable URI permission for uri=$uri")
-            Toast.makeText(this, R.string.uri_permission_failed, Toast.LENGTH_LONG).show()
-            return
+        if (!persistResult) {
+            Log.d(TAG, "playSelectedAudio continuing without persisted permission for uri=$uri")
         }
 
         val intent = Intent(this, PlayerService::class.java).apply {
@@ -572,12 +567,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun playSingle(file: DocumentFile) {
         Log.d(TAG, "playSingle requested: uri=${file.uri}")
-        if (!hasReadAccess(file.uri)) {
-            val message = getString(R.string.uri_permission_failed)
-            Log.d(TAG, "playSingle blocked, missing read access for uri=${file.uri}")
-            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-            return
-        }
         val intent = Intent(this, PlayerService::class.java).apply {
             action = PlayerService.ACTION_PLAY_SINGLE
             putExtra(PlayerService.EXTRA_SINGLE_URI, file.uri.toString())
@@ -621,13 +610,6 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "persistUriPermission failed for uri=$uri: ${error.message}")
             false
         }
-    }
-
-    private fun hasReadAccess(uri: Uri): Boolean {
-        return runCatching {
-            contentResolver.openAssetFileDescriptor(uri, "r")?.use { }
-            true
-        }.getOrElse { false }
     }
 
     private fun updateProgress(positionMs: Long, durationMs: Long) {
