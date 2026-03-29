@@ -301,11 +301,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupButtons() {
         findViewById<ImageButton>(R.id.browseButton).setOnLongClickListener {
-            chooseFolderLauncher.launch(null)
+            chooseAudioLauncher.launch(arrayOf("audio/*"))
+            Toast.makeText(this, R.string.file_picker_hint, Toast.LENGTH_SHORT).show()
             true
         }
         findViewById<ImageButton>(R.id.browseButton).setOnClickListener {
-            chooseAudioLauncher.launch(arrayOf("audio/*"))
+            chooseFolderLauncher.launch(null)
             Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
         }
         playPauseButton.setOnClickListener {
@@ -385,14 +386,20 @@ class MainActivity : AppCompatActivity() {
         rightAdapter.setHighlightedUri(currentTrackUri)
 
         mainScope.launch {
+            val hasTreeContext = rootTreeUri != null && currentFolder != null
+            if (!hasTreeContext) {
+                Log.d(TAG, "playSelectedAudio no folder tree context; keeping explorer unchanged")
+                Toast.makeText(this@MainActivity, R.string.file_context_unavailable, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
             val parentFolder = resolveParentFolderFromPickedFile(uri)
             if (parentFolder != null) {
-                Log.d(TAG, "playSelectedAudio resolved parent folder uri=${parentFolder.uri}")
+                Log.d(TAG, "playSelectedAudio resolved parent folder in existing tree uri=${parentFolder.uri}")
                 selectLeftFolder(null)
                 openFolder(parentFolder)
             } else {
-                Log.d(TAG, "playSelectedAudio fallback: folder context unavailable for uri=$uri")
-                Toast.makeText(this@MainActivity, R.string.file_context_unavailable, Toast.LENGTH_SHORT).show()
+                Log.d(TAG, "playSelectedAudio file not resolved in selected tree; preserving explorer state")
             }
         }
     }
@@ -446,9 +453,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun resolveParentFolderFromPickedFile(fileUri: Uri): DocumentFile? {
+        val treeUri = rootTreeUri ?: return null
         val authority = fileUri.authority
-        if (authority.isNullOrBlank()) {
-            Log.d(TAG, "resolveParentFolderFromPickedFile skipped: missing authority uri=$fileUri")
+        if (authority.isNullOrBlank() || authority != treeUri.authority) {
+            Log.d(TAG, "resolveParentFolderFromPickedFile skipped: authority mismatch tree=${treeUri.authority} file=$authority uri=$fileUri")
             return null
         }
 
@@ -464,38 +472,23 @@ class MainActivity : AppCompatActivity() {
         val parentDocId = docId.substring(0, separatorIndex)
         Log.d(TAG, "resolveParentFolderFromPickedFile docId=$docId parentDocId=$parentDocId")
 
-        val candidates = buildList {
-            val treeUri = rootTreeUri
-            if (treeUri != null && treeUri.authority == authority) {
-                val treeCandidate = DocumentsContract.buildDocumentUriUsingTree(treeUri, parentDocId)
-                add(treeCandidate to "tree")
-            }
-            val singleCandidate = DocumentsContract.buildDocumentUri(authority, parentDocId)
-            add(singleCandidate to "single")
-        }
-
-        candidates.forEach { (candidateUri, source) ->
-            val folder = when (source) {
-                "tree" -> DocumentFile.fromTreeUri(this, candidateUri)
-                else -> DocumentFile.fromSingleUri(this, candidateUri)
-            } ?: return@forEach
-
-            if (!folder.exists() || !folder.isDirectory) {
-                Log.d(
-                    TAG,
-                    "resolveParentFolderFromPickedFile rejected $source candidate uri=$candidateUri exists=${folder.exists()} isDirectory=${folder.isDirectory}"
-                )
-                return@forEach
-            }
-
-            val canListChildren = runCatching { repository.listChildren(folder); true }.getOrElse { false }
+        val parentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, parentDocId)
+        val folder = DocumentFile.fromTreeUri(this, parentUri) ?: return null
+        if (!folder.exists() || !folder.isDirectory) {
             Log.d(
                 TAG,
-                "resolveParentFolderFromPickedFile candidate source=$source uri=$candidateUri canListChildren=$canListChildren"
+                "resolveParentFolderFromPickedFile rejected tree candidate uri=$parentUri exists=${folder.exists()} isDirectory=${folder.isDirectory}"
             )
-            if (canListChildren) {
-                return folder
-            }
+            return null
+        }
+
+        val canListChildren = runCatching { repository.listChildren(folder); true }.getOrElse { false }
+        Log.d(
+            TAG,
+            "resolveParentFolderFromPickedFile tree candidate uri=$parentUri canListChildren=$canListChildren"
+        )
+        if (canListChildren) {
+            return folder
         }
 
         Log.d(TAG, "resolveParentFolderFromPickedFile failed for uri=$fileUri")
