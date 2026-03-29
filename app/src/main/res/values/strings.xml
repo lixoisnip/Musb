@@ -16,7 +16,8 @@
     <string name="list_label">Files view</string>
     <string name="usb_disconnected">USB disconnected, choose folder again</string>
     <string name="choose_folder">Choose USB folder</string>
-    <string name="folder_picker_hint">Pick an audio file (long press: open music folder)</string>
+    <string name="folder_picker_hint">Pick a music folder for browsing</string>
+    <string name="file_picker_hint">Pick a single audio file for one-off playback</string>
     <string name="file_pick_cancelled">Audio selection canceled</string>
     <string name="folder_pick_cancelled">Folder selection canceled</string>
     <string name="uri_permission_failed">Cannot access selected item</string>
