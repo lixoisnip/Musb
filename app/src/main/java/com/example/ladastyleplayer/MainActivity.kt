@@ -119,13 +119,7 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, R.string.folder_pick_cancelled, Toast.LENGTH_SHORT).show()
                 return@registerForActivityResult
             }
-
-            if (!persistUriPermission(uri)) {
-                Toast.makeText(this, R.string.uri_permission_failed, Toast.LENGTH_LONG).show()
-                return@registerForActivityResult
-            }
-
-            registerSourceRoot(uri)
+            openTree(uri)
         }
 
     private val chooseAudioLauncher =
@@ -315,14 +309,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupButtons() {
         findViewById<ImageButton>(R.id.browseButton).setOnClickListener {
-            Log.d(TAG, "browseButton click: launching folder tree picker")
-            chooseFolderLauncher.launch(null)
-            Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
-        }
-        findViewById<ImageButton>(R.id.browseButton).setOnLongClickListener {
-            Log.d(TAG, "browseButton long-click: launching single audio picker")
+            Log.d(TAG, "browseButton click: launching single audio picker")
             chooseAudioLauncher.launch(arrayOf("audio/*"))
             Toast.makeText(this, R.string.file_picker_hint, Toast.LENGTH_SHORT).show()
+        }
+        findViewById<ImageButton>(R.id.browseButton).setOnLongClickListener {
+            Log.d(TAG, "browseButton long-click: launching folder tree picker")
+            chooseFolderLauncher.launch(null)
+            Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
             true
         }
         playPauseButton.setOnClickListener {
@@ -365,6 +359,39 @@ class MainActivity : AppCompatActivity() {
         saveSourceUri(uri)
         loadPersistedSources(selectedUri = uri.toString())
         enterSource(uri.toString())
+    }
+
+    private fun openTree(uri: Uri) {
+        Log.d(TAG, "openTree(uri=$uri)")
+        if (!persistUriPermission(uri)) {
+            Log.d(TAG, "openTree denied: persistUriPermission failed uri=$uri")
+            Toast.makeText(this, R.string.source_root_denied, Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val root = DocumentFile.fromTreeUri(this, uri)
+        if (root == null || !root.exists() || !root.isDirectory) {
+            Log.d(TAG, "openTree denied: invalid root uri=$uri exists=${root?.exists()} isDirectory=${root?.isDirectory}")
+            Toast.makeText(this, R.string.source_root_denied, Toast.LENGTH_LONG).show()
+            return
+        }
+
+        mainScope.launch {
+            val canListChildren = runCatching {
+                repository.listChildren(root)
+                true
+            }.getOrElse { error ->
+                Log.d(TAG, "openTree denied: cannot list root uri=$uri message=${error.message}")
+                false
+            }
+
+            if (!canListChildren) {
+                Toast.makeText(this@MainActivity, R.string.source_root_denied, Toast.LENGTH_LONG).show()
+                return@launch
+            }
+
+            registerSourceRoot(uri)
+        }
     }
 
     private fun loadPersistedSources(selectedUri: String? = null) {
@@ -488,6 +515,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshMusicExplorerForSource(source: SourceRoot) {
         val root = DocumentFile.fromTreeUri(this, source.treeUri)
+        Log.d(TAG, "refreshMusicExplorer(root=${source.treeUri})")
         if (root == null || !root.exists()) {
             showUsbError()
             showSourceRootsView()
@@ -501,7 +529,7 @@ class MainActivity : AppCompatActivity() {
             runCatching {
                 repository.collectMusicRelevantFolders(root)
             }.onSuccess { branches ->
-                Log.d(TAG, "left-branch population source=${source.treeUri} branches=${branches.size}")
+                Log.d(TAG, "refreshMusicExplorer(root=${source.treeUri}) leftBranches=${branches.size}")
                 val initialBranch = branches.firstOrNull()
                 selectedLeftBranchFolder = initialBranch
                 currentRightBranchContext = initialBranch ?: root
@@ -523,7 +551,7 @@ class MainActivity : AppCompatActivity() {
                     renderRightBranchContent(root, source)
                 }
             }.onFailure {
-                Log.d(TAG, "left-branch population failed source=${source.treeUri} message=${it.message}")
+                Log.d(TAG, "refreshMusicExplorer(root=${source.treeUri}) failed message=${it.message}")
                 showUsbError()
                 findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
                 findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
@@ -546,6 +574,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun renderRightBranchContent(folder: DocumentFile, source: SourceRoot) {
+        Log.d(TAG, "renderRightBranchContent(folder=${folder.uri})")
         val breadcrumb = buildBreadcrumb(folder, source.treeUri)
         currentBreadcrumb = breadcrumb
         pathText.text = getString(R.string.path_source_branch, source.label, breadcrumb)
@@ -557,7 +586,7 @@ class MainActivity : AppCompatActivity() {
             }.onSuccess { content ->
                 Log.d(
                     TAG,
-                    "right-branch population folder=${folder.uri} breadcrumb=$currentBreadcrumb subfolders=${content.subfolders.size} tracks=${content.audioFiles.size}"
+                    "renderRightBranchContent(folder=${folder.uri}) subfolders=${content.subfolders.size} tracks=${content.audioFiles.size}"
                 )
                 val rightItems = buildList {
                     val sourceRoot = DocumentFile.fromTreeUri(this@MainActivity, source.treeUri)
@@ -574,7 +603,7 @@ class MainActivity : AppCompatActivity() {
                 findViewById<TextView>(R.id.rightEmptyText).visibility =
                     if (content.subfolders.isEmpty() && content.audioFiles.isEmpty()) View.VISIBLE else View.GONE
             }.onFailure {
-                Log.d(TAG, "right-branch population failed folder=${folder.uri} message=${it.message}")
+                Log.d(TAG, "renderRightBranchContent(folder=${folder.uri}) failed message=${it.message}")
                 showUsbError()
                 findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
             }
