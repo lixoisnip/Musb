@@ -70,7 +70,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rightRecycler: RecyclerView
     private lateinit var rightPanel: View
 
-    private var currentFolder: DocumentFile? = null
     private val coverPlaceholderRes = android.R.drawable.ic_menu_report_image
     private var latestDurationMs: Long = 0L
     private var isUserSeeking = false
@@ -80,10 +79,11 @@ class MainActivity : AppCompatActivity() {
     private var isShuffleOn = false
     private var repeatMode = Player.REPEAT_MODE_OFF
     private var isMuted = false
-    private var selectedLeftFolderUri: String? = null
+    private var selectedLeftBranchUri: String? = null
     private var rootTreeUri: Uri? = null
-    private var selectedBranchFolder: DocumentFile? = null
-    private var currentRightFolder: DocumentFile? = null
+    private var selectedLeftBranchFolder: DocumentFile? = null
+    private var currentRightBranchContext: DocumentFile? = null
+    private var currentBreadcrumb: String = "Music"
 
     private val clockRunnable = object : Runnable {
         override fun run() {
@@ -102,6 +102,7 @@ class MainActivity : AppCompatActivity() {
 
     private val chooseFolderLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            Log.d(TAG, "chooseFolderLauncher result uri=$uri")
             if (uri == null) {
                 Toast.makeText(this, R.string.folder_pick_cancelled, Toast.LENGTH_SHORT).show()
                 return@registerForActivityResult
@@ -113,6 +114,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             prefs.edit { putString(KEY_TREE_URI, uri.toString()) }
+            Log.d(TAG, "tree selection persisted uri=$uri")
             openTree(uri)
         }
 
@@ -277,7 +279,7 @@ class MainActivity : AppCompatActivity() {
         leftAdapter = FileEntryAdapter(
             showPlayFolderButton = true,
             onFolderClick = { folder ->
-                selectLeftFolder(folder.uri.toString())
+                selectLeftBranch(folder.uri.toString())
                 openBranch(folder)
             },
             onFileClick = { file -> playSingle(file) },
@@ -286,7 +288,7 @@ class MainActivity : AppCompatActivity() {
         )
         rightAdapter = FileEntryAdapter(
             showPlayFolderButton = false,
-            onFolderClick = { folder -> openRightFolder(folder) },
+            onFolderClick = { folder -> narrowRightBranch(folder) },
             onFileClick = { file -> playSingle(file) },
             onPlayFolder = { folder -> playAll(folder, false) },
             onUpClick = { navigateRightUp() }
@@ -303,14 +305,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
-        findViewById<ImageButton>(R.id.browseButton).setOnLongClickListener {
+        findViewById<ImageButton>(R.id.browseButton).setOnClickListener {
             chooseFolderLauncher.launch(null)
             Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
-            true
         }
-        findViewById<ImageButton>(R.id.browseButton).setOnClickListener {
+        findViewById<ImageButton>(R.id.browseButton).setOnLongClickListener {
             chooseAudioLauncher.launch(arrayOf("audio/*"))
             Toast.makeText(this, R.string.file_picker_hint, Toast.LENGTH_SHORT).show()
+            true
         }
         playPauseButton.setOnClickListener {
             startPlayerAction(PlayerService.ACTION_PLAY_PAUSE)
@@ -356,18 +358,20 @@ class MainActivity : AppCompatActivity() {
             pathText.text = "USB • Music"
             topSourceText.text = getString(R.string.top_source_placeholder)
             usbStatusText.text = getString(R.string.status_usb_connected)
-            currentFolder = root
-            selectedLeftFolderUri = null
-            selectedBranchFolder = null
-            currentRightFolder = null
+            selectedLeftBranchUri = null
+            selectedLeftBranchFolder = null
+            currentRightBranchContext = null
+            currentBreadcrumb = "Music"
+            Log.d(TAG, "openTree success rootUri=${root.uri} resume=$resume")
             refreshMusicExplorer(root)
             if (resume) {
                 mainScope.launch {
-                    val defaultBranch = selectedBranchFolder ?: root.takeIf { repository.hasMusicInBranch(it) }
+                    val defaultBranch = selectedLeftBranchFolder ?: root.takeIf { repository.hasMusicInBranch(it) }
                     if (defaultBranch != null) playAll(defaultBranch, true)
                 }
             }
         } catch (e: Exception) {
+            Log.d(TAG, "openTree failed uri=$uri message=${e.message}")
             showUsbError()
         }
     }
@@ -403,7 +407,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun tryRestoreExplorerContextFromPickedFile(uri: Uri) {
-        val hasTreeContext = rootTreeUri != null && currentFolder != null
+        val hasTreeContext = rootTreeUri != null
         if (!hasTreeContext) {
             Log.d(
                 TAG,
@@ -439,12 +443,13 @@ class MainActivity : AppCompatActivity() {
             runCatching {
                 repository.collectMusicRelevantFolders(root)
             }.onSuccess { branches ->
+                Log.d(TAG, "left-branch population root=${root.uri} branches=${branches.size}")
                 val initialBranch = branches.firstOrNull()
-                selectedBranchFolder = initialBranch
-                currentRightFolder = initialBranch
+                selectedLeftBranchFolder = initialBranch
+                currentRightBranchContext = initialBranch
 
                 leftAdapter.submitList(branches.map { FileEntryAdapter.EntryItem(documentFile = it) })
-                selectLeftFolder(initialBranch?.uri?.toString())
+                selectLeftBranch(initialBranch?.uri?.toString())
 
                 findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.no_subfolders_found)
                 findViewById<TextView>(R.id.leftEmptyText).visibility =
@@ -456,6 +461,7 @@ class MainActivity : AppCompatActivity() {
                     renderRightBranchContent(root)
                 }
             }.onFailure {
+                Log.d(TAG, "left-branch population failed root=${root.uri} message=${it.message}")
                 showUsbError()
                 findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
                 findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
@@ -464,20 +470,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openBranch(folder: DocumentFile) {
-        selectedBranchFolder = folder
-        currentRightFolder = folder
+        Log.d(TAG, "left branch selected folder=${folder.uri}")
+        selectedLeftBranchFolder = folder
+        currentRightBranchContext = folder
         renderRightBranchContent(folder)
     }
 
-    private fun openRightFolder(folder: DocumentFile) {
-        currentRightFolder = folder
+    private fun narrowRightBranch(folder: DocumentFile) {
+        Log.d(TAG, "right-branch narrowing target=${folder.uri}")
+        currentRightBranchContext = folder
         renderRightBranchContent(folder)
     }
 
     private fun renderRightBranchContent(folder: DocumentFile) {
-        currentFolder = folder
-
         val breadcrumb = buildBreadcrumb(folder)
+        currentBreadcrumb = breadcrumb
         pathText.text = "USB • Music • $breadcrumb"
         topSourceText.text = "Showing music in $breadcrumb"
 
@@ -485,8 +492,12 @@ class MainActivity : AppCompatActivity() {
             runCatching {
                 repository.collectBranchContent(folder)
             }.onSuccess { content ->
+                Log.d(
+                    TAG,
+                    "right-branch population folder=${folder.uri} breadcrumb=$currentBreadcrumb subfolders=${content.subfolders.size} tracks=${content.audioFiles.size}"
+                )
                 val rightItems = buildList {
-                    val canGoUp = selectedBranchFolder != null && folder.uri != selectedBranchFolder?.uri
+                    val canGoUp = selectedLeftBranchFolder != null && folder.uri != selectedLeftBranchFolder?.uri
                     if (canGoUp) add(FileEntryAdapter.EntryItem(isUpItem = true))
                     addAll(content.subfolders.map { FileEntryAdapter.EntryItem(documentFile = it) })
                     addAll(content.audioFiles.map { FileEntryAdapter.EntryItem(documentFile = it) })
@@ -498,6 +509,7 @@ class MainActivity : AppCompatActivity() {
                 findViewById<TextView>(R.id.rightEmptyText).visibility =
                     if (content.subfolders.isEmpty() && content.audioFiles.isEmpty()) View.VISIBLE else View.GONE
             }.onFailure {
+                Log.d(TAG, "right-branch population failed folder=${folder.uri} message=${it.message}")
                 showUsbError()
                 findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
             }
@@ -558,12 +570,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun navigateRightUp() {
-        val folder = currentRightFolder ?: return
-        val branch = selectedBranchFolder ?: return
+        val folder = currentRightBranchContext ?: return
+        val branch = selectedLeftBranchFolder ?: return
         if (folder.uri == branch.uri) return
         val parentFolder = getParentFolder(folder) ?: return
         if (parentFolder.uri == branch.uri || isDescendantOfBranch(parentFolder, branch)) {
-            currentRightFolder = parentFolder
+            currentRightBranchContext = parentFolder
             renderRightBranchContent(parentFolder)
         }
     }
@@ -602,19 +614,24 @@ class MainActivity : AppCompatActivity() {
         val branches = runCatching { repository.collectMusicRelevantFolders(root) }.getOrNull() ?: return
         val matchingBranch = branches.firstOrNull { isDescendantOfBranch(folder, it) }
         if (matchingBranch != null) {
+            Log.d(
+                TAG,
+                "single-file flow aligned branch=${matchingBranch.uri} rightContext=${folder.uri}"
+            )
             leftAdapter.submitList(branches.map { FileEntryAdapter.EntryItem(documentFile = it) })
-            selectedBranchFolder = matchingBranch
-            currentRightFolder = folder
-            selectLeftFolder(matchingBranch.uri.toString())
+            selectedLeftBranchFolder = matchingBranch
+            currentRightBranchContext = folder
+            selectLeftBranch(matchingBranch.uri.toString())
             renderRightBranchContent(folder)
             findViewById<TextView>(R.id.leftEmptyText).visibility = if (branches.isEmpty()) View.VISIBLE else View.GONE
         } else {
+            Log.d(TAG, "single-file flow could not align to branch for folder=${folder.uri}, refreshing")
             refreshMusicExplorer(root)
         }
     }
 
-    private fun selectLeftFolder(uri: String?) {
-        selectedLeftFolderUri = uri
+    private fun selectLeftBranch(uri: String?) {
+        selectedLeftBranchUri = uri
         leftAdapter.setSelectedUri(uri)
     }
 
