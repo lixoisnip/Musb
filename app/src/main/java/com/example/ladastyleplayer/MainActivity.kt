@@ -380,10 +380,19 @@ class MainActivity : AppCompatActivity() {
         currentTrackUri = uri.toString()
         rightAdapter.setHighlightedUri(currentTrackUri)
 
-        tryRestoreExplorerContextFromPickedFile(uri)
+        mainScope.launch {
+            try {
+                tryRestoreExplorerContextFromPickedFile(uri)
+            } catch (error: Exception) {
+                Log.d(
+                    TAG,
+                    "playSelectedAudio optional explorer restore failed for uri=$uri: ${error.message}"
+                )
+            }
+        }
     }
 
-    private fun tryRestoreExplorerContextFromPickedFile(uri: Uri) {
+    private suspend fun tryRestoreExplorerContextFromPickedFile(uri: Uri) {
         val hasTreeContext = rootTreeUri != null && currentFolder != null
         if (!hasTreeContext) {
             Log.d(
@@ -393,29 +402,26 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        mainScope.launch {
-            runCatching {
-                resolveParentFolderFromPickedFile(uri)
-            }.onSuccess { parentFolder ->
-                if (parentFolder != null) {
-                    Log.d(
-                        TAG,
-                        "playSelectedAudio optional explorer restore success parentFolderUri=${parentFolder.uri}"
-                    )
-                    selectLeftFolder(null)
-                    openFolder(parentFolder)
-                } else {
-                    Log.d(
-                        TAG,
-                        "playSelectedAudio optional explorer restore skipped: parent folder unresolved for uri=$uri"
-                    )
-                }
-            }.onFailure { error ->
+        try {
+            val parentFolder = resolveParentFolderFromPickedFile(uri)
+            if (parentFolder != null) {
                 Log.d(
                     TAG,
-                    "playSelectedAudio optional explorer restore failed for uri=$uri: ${error.message}"
+                    "playSelectedAudio optional explorer restore success parentFolderUri=${parentFolder.uri}"
+                )
+                selectLeftFolder(null)
+                openFolder(parentFolder)
+            } else {
+                Log.d(
+                    TAG,
+                    "playSelectedAudio optional explorer restore skipped: parent folder unresolved for uri=$uri"
                 )
             }
+        } catch (error: Exception) {
+            Log.d(
+                TAG,
+                "playSelectedAudio optional explorer restore failed for uri=$uri: ${error.message}"
+            )
         }
     }
 
@@ -497,21 +503,27 @@ class MainActivity : AppCompatActivity() {
             return null
         }
 
-        val canListChildren = runCatching { repository.listChildren(folder); true }.getOrElse { false }
+        val canListChildren = try {
+            repository.listChildren(folder)
+            true
+        } catch (error: Exception) {
+            Log.d(
+                TAG,
+                "resolveParentFolderFromPickedFile failed listing candidate uri=$parentUri: ${error.message}"
+            )
+            false
+        }
         Log.d(
             TAG,
             "resolveParentFolderFromPickedFile tree candidate uri=$parentUri canListChildren=$canListChildren"
         )
-        if (canListChildren) {
-            Log.d(
-                TAG,
-                "resolveParentFolderFromPickedFile success for uri=$fileUri parentUri=${folder.uri}"
-            )
-            return folder
-        }
+        if (!canListChildren) return null
 
-        Log.d(TAG, "resolveParentFolderFromPickedFile failed for uri=$fileUri")
-        return null
+        Log.d(
+            TAG,
+            "resolveParentFolderFromPickedFile success for uri=$fileUri parentUri=${folder.uri}"
+        )
+        return folder
     }
 
     private fun navigateUp() {
