@@ -17,16 +17,22 @@ class FileEntryAdapter(
     private val onFolderClick: (DocumentFile) -> Unit,
     private val onFileClick: (DocumentFile) -> Unit,
     private val onPlayFolder: (DocumentFile) -> Unit,
+    private val onCustomClick: ((String) -> Unit)? = null,
     private val onUpClick: (() -> Unit)? = null
 ) : RecyclerView.Adapter<FileEntryAdapter.EntryViewHolder>() {
 
     data class EntryItem(
         val documentFile: DocumentFile? = null,
-        val isUpItem: Boolean = false
+        val isUpItem: Boolean = false,
+        val customId: String? = null,
+        val customName: String? = null,
+        val customIcon: String? = null,
+        val isCustomFolder: Boolean = false,
+        val isEnabled: Boolean = true
     )
 
     private val items = mutableListOf<EntryItem>()
-    private var selectedUri: String? = null
+    private var selectedKey: String? = null
     private var highlightedUri: String? = null
 
     fun submitList(newItems: List<EntryItem>) {
@@ -35,8 +41,8 @@ class FileEntryAdapter(
         notifyDataSetChanged()
     }
 
-    fun setSelectedUri(uri: String?) {
-        selectedUri = uri
+    fun setSelectedKey(key: String?) {
+        selectedKey = key
         notifyDataSetChanged()
     }
 
@@ -76,11 +82,30 @@ class FileEntryAdapter(
             return
         }
 
+        if (!item.customId.isNullOrBlank()) {
+            holder.name.text = item.customName ?: "-"
+            holder.icon.text = item.customIcon ?: if (item.isCustomFolder) "📁" else "•"
+            holder.duration.visibility = View.GONE
+            holder.playFolder.visibility = View.GONE
+            val isActive = item.customId == selectedKey
+            val isEnabled = item.isEnabled
+            holder.itemView.isActivated = isActive
+            holder.name.isActivated = isActive
+            holder.icon.isActivated = isActive
+            holder.duration.isActivated = false
+            holder.itemView.alpha = if (isEnabled) 1f else 0.55f
+            holder.itemView.setPadding(dp(holder.itemView, BASE_PADDING_DP), holder.itemView.paddingTop, holder.itemView.paddingRight, holder.itemView.paddingBottom)
+            holder.itemView.setOnClickListener {
+                if (isEnabled) onCustomClick?.invoke(item.customId)
+            }
+            return
+        }
+
         val documentFile = item.documentFile ?: return
         holder.name.text = documentFile.name ?: "-"
 
         val uri = documentFile.uri.toString()
-        val isActive = uri == selectedUri || uri == highlightedUri
+        val isActive = uri == selectedKey || uri == highlightedUri
         holder.itemView.isActivated = isActive
         holder.name.isActivated = isActive
         holder.icon.isActivated = isActive
