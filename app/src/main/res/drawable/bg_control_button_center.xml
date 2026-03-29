@@ -4,34 +4,37 @@
         <layer-list>
             <item>
                 <shape android:shape="oval">
-                    <gradient android:angle="270" android:startColor="#142637" android:endColor="#02050A" />
-                    <stroke android:width="1.2dp" android:color="#2C455C" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="@color/control_center_shell_pressed_top"
+                        android:endColor="@color/control_center_shell_pressed_bottom" />
+                    <stroke android:width="2.4dp" android:color="@color/control_center_shell_stroke_pressed" />
                 </shape>
             </item>
-            <item android:top="3dp" android:bottom="3dp" android:left="3dp" android:right="3dp">
-                <shape android:shape="oval">
-                    <gradient android:angle="270" android:startColor="#213447" android:endColor="#0A131C" />
-                    <stroke android:width="6dp" android:color="#E7A456" />
-                </shape>
-            </item>
-            <item android:top="11dp" android:bottom="11dp" android:left="11dp" android:right="11dp">
-                <shape android:shape="oval">
-                    <stroke android:width="1.2dp" android:color="#335069" />
-                    <gradient android:angle="270" android:startColor="#132232" android:endColor="#060D14" />
-                </shape>
-            </item>
-            <item android:top="17dp" android:bottom="17dp" android:left="17dp" android:right="17dp">
+            <item android:left="4dp" android:top="4dp" android:right="4dp" android:bottom="4dp">
                 <shape android:shape="oval">
                     <gradient
                         android:angle="270"
-                        android:endColor="#122231"
-                        android:startColor="#4A647F" />
-                    <stroke android:width="1.6dp" android:color="#7B96B1" />
+                        android:startColor="@color/control_center_ring_back_pressed_top"
+                        android:endColor="@color/control_center_ring_back_pressed_bottom" />
+                    <stroke android:width="8dp" android:color="@color/control_center_ring_pressed" />
                 </shape>
             </item>
-            <item android:top="20dp" android:bottom="68dp" android:left="25dp" android:right="25dp">
+            <item android:left="13dp" android:top="13dp" android:right="13dp" android:bottom="13dp">
                 <shape android:shape="oval">
-                    <gradient android:angle="270" android:startColor="#8FC9E6FF" android:endColor="#00C9E6FF" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="@color/control_center_inner_pressed_top"
+                        android:endColor="@color/control_center_inner_pressed_bottom" />
+                    <stroke android:width="1.8dp" android:color="@color/control_center_inner_stroke_pressed" />
+                </shape>
+            </item>
+            <item android:left="19dp" android:top="20dp" android:right="19dp" android:bottom="66dp">
+                <shape android:shape="oval">
+                    <gradient
+                        android:angle="270"
+                        android:startColor="@color/control_center_highlight_pressed"
+                        android:endColor="@android:color/transparent" />
                 </shape>
             </item>
         </layer-list>
@@ -41,34 +44,37 @@
         <layer-list>
             <item>
                 <shape android:shape="oval">
-                    <gradient android:angle="270" android:startColor="#122435" android:endColor="#02050A" />
-                    <stroke android:width="1.2dp" android:color="#2A435A" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="@color/control_center_shell_top"
+                        android:endColor="@color/control_center_shell_bottom" />
+                    <stroke android:width="2.4dp" android:color="@color/control_center_shell_stroke" />
                 </shape>
             </item>
-            <item android:top="3dp" android:bottom="3dp" android:left="3dp" android:right="3dp">
-                <shape android:shape="oval">
-                    <gradient android:angle="270" android:startColor="#213548" android:endColor="#0A131D" />
-                    <stroke android:width="6dp" android:color="#D59045" />
-                </shape>
-            </item>
-            <item android:top="11dp" android:bottom="11dp" android:left="11dp" android:right="11dp">
-                <shape android:shape="oval">
-                    <stroke android:width="1.2dp" android:color="#32506A" />
-                    <gradient android:angle="270" android:startColor="#142434" android:endColor="#070E15" />
-                </shape>
-            </item>
-            <item android:top="17dp" android:bottom="17dp" android:left="17dp" android:right="17dp">
+            <item android:left="4dp" android:top="4dp" android:right="4dp" android:bottom="4dp">
                 <shape android:shape="oval">
                     <gradient
                         android:angle="270"
-                        android:endColor="#101F2D"
-                        android:startColor="#435D78" />
-                    <stroke android:width="1.6dp" android:color="#7390AA" />
+                        android:startColor="@color/control_center_ring_back_top"
+                        android:endColor="@color/control_center_ring_back_bottom" />
+                    <stroke android:width="8dp" android:color="@color/control_center_ring" />
                 </shape>
             </item>
-            <item android:top="20dp" android:bottom="68dp" android:left="25dp" android:right="25dp">
+            <item android:left="13dp" android:top="13dp" android:right="13dp" android:bottom="13dp">
                 <shape android:shape="oval">
-                    <gradient android:angle="270" android:startColor="#96D0EDFF" android:endColor="#00D0EDFF" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="@color/control_center_inner_top"
+                        android:endColor="@color/control_center_inner_bottom" />
+                    <stroke android:width="1.8dp" android:color="@color/control_center_inner_stroke" />
+                </shape>
+            </item>
+            <item android:left="19dp" android:top="20dp" android:right="19dp" android:bottom="66dp">
+                <shape android:shape="oval">
+                    <gradient
+                        android:angle="270"
+                        android:startColor="@color/control_center_highlight"
+                        android:endColor="@android:color/transparent" />
                 </shape>
             </item>
         </layer-list>
