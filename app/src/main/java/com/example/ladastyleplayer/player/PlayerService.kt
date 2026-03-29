@@ -135,6 +135,7 @@ class PlayerService : Service() {
     private fun handlePlaySingle(intent: Intent) {
         val uri = intent.getStringExtra(EXTRA_SINGLE_URI)?.let(Uri::parse)
         if (uri == null) {
+            Log.d(TAG, "handlePlaySingle: missing EXTRA_SINGLE_URI")
             sendPlaybackError(getString(R.string.playback_failed))
             return
         }
@@ -151,9 +152,11 @@ class PlayerService : Service() {
             player.prepare()
             player.playWhenReady = true
             player.play()
+            Log.d(TAG, "handlePlaySingle: playback started for uri=$uri")
         }.onFailure { error ->
             Log.d(TAG, "handlePlaySingle failed for uri=$uri: ${error.message}", error)
-            sendPlaybackError(error.message ?: getString(R.string.playback_failed))
+            val message = error.message ?: "Failed to play selected file"
+            sendPlaybackError("$message: $uri")
         }
     }
 
@@ -195,6 +198,7 @@ class PlayerService : Service() {
     }
 
     private fun sendPlaybackError(message: String) {
+        Log.d(TAG, "sendPlaybackError: $message")
         val intent = Intent(ACTION_PLAYBACK_ERROR).apply {
             putExtra(EXTRA_ERROR_MESSAGE, message)
         }

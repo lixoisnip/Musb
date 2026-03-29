@@ -114,6 +114,7 @@ class MainActivity : AppCompatActivity() {
 
     private val chooseAudioLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            Log.d(TAG, "chooseAudioLauncher result uri=$uri")
             if (uri == null) {
                 Toast.makeText(this, R.string.file_pick_cancelled, Toast.LENGTH_SHORT).show()
                 return@registerForActivityResult
@@ -357,7 +358,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun playSelectedAudio(uri: Uri) {
-        if (!persistUriPermission(uri)) {
+        val persistResult = persistUriPermission(uri)
+        Log.d(TAG, "playSelectedAudio persistUriPermission(uri=$uri)=$persistResult")
+        val hasReadAccess = hasReadAccess(uri)
+        Log.d(TAG, "playSelectedAudio hasReadAccess(uri=$uri)=$hasReadAccess")
+
+        if (!persistResult && !hasReadAccess) {
+            Log.d(TAG, "playSelectedAudio blocked: no usable URI permission for uri=$uri")
             Toast.makeText(this, R.string.uri_permission_failed, Toast.LENGTH_LONG).show()
             return
         }
@@ -366,6 +373,7 @@ class MainActivity : AppCompatActivity() {
             action = PlayerService.ACTION_PLAY_SINGLE
             putExtra(PlayerService.EXTRA_SINGLE_URI, uri.toString())
         }
+        Log.d(TAG, "Dispatching ACTION_PLAY_SINGLE with EXTRA_SINGLE_URI=$uri")
         startService(intent)
     }
 
@@ -482,13 +490,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun persistUriPermission(uri: Uri): Boolean {
-        return try {
-            val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            contentResolver.takePersistableUriPermission(uri, takeFlags)
+        return runCatching {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             true
-        } catch (e: SecurityException) {
-            false
-        } catch (e: IllegalArgumentException) {
+        }.recoverCatching {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            true
+        }.getOrElse { error ->
+            Log.d(TAG, "persistUriPermission failed for uri=$uri: ${error.message}")
             false
         }
     }
