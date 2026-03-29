@@ -4,34 +4,47 @@
         <layer-list>
             <item>
                 <shape android:shape="oval">
-                    <solid android:color="#11161C" />
-                    <stroke android:width="3dp" android:color="@color/control_center_ring_pressed" />
+                    <solid android:color="@color/control_center_shell_pressed" />
                 </shape>
             </item>
-            <item android:top="8dp" android:bottom="8dp" android:left="8dp" android:right="8dp">
+            <item android:top="2dp" android:bottom="2dp" android:left="2dp" android:right="2dp">
+                <shape android:shape="oval">
+                    <solid android:color="#101720" />
+                    <stroke android:width="4dp" android:color="@color/control_center_ring_pressed" />
+                </shape>
+            </item>
+            <item android:top="12dp" android:bottom="12dp" android:left="12dp" android:right="12dp">
                 <shape android:shape="oval">
                     <gradient
                         android:angle="270"
                         android:endColor="@color/control_center_inner_pressed_bottom"
                         android:startColor="@color/control_center_inner_pressed_top" />
+                    <stroke android:width="1dp" android:color="@color/control_center_inner_stroke" />
                 </shape>
             </item>
         </layer-list>
     </item>
+
     <item>
         <layer-list>
             <item>
                 <shape android:shape="oval">
-                    <solid android:color="#10151B" />
-                    <stroke android:width="3dp" android:color="@color/control_center_ring" />
+                    <solid android:color="@color/control_center_shell" />
                 </shape>
             </item>
-            <item android:top="8dp" android:bottom="8dp" android:left="8dp" android:right="8dp">
+            <item android:top="2dp" android:bottom="2dp" android:left="2dp" android:right="2dp">
+                <shape android:shape="oval">
+                    <solid android:color="#0F161F" />
+                    <stroke android:width="4dp" android:color="@color/control_center_ring" />
+                </shape>
+            </item>
+            <item android:top="12dp" android:bottom="12dp" android:left="12dp" android:right="12dp">
                 <shape android:shape="oval">
                     <gradient
                         android:angle="270"
                         android:endColor="@color/control_center_inner_bottom"
                         android:startColor="@color/control_center_inner_top" />
+                    <stroke android:width="1dp" android:color="@color/control_center_inner_stroke" />
                 </shape>
             </item>
         </layer-list>

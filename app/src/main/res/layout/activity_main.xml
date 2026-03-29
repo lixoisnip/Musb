@@ -283,8 +283,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_controls_cluster"
-        android:paddingHorizontal="10dp"
-        android:paddingVertical="7dp"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="9dp"
         app:layout_constraintBottom_toTopOf="@id/bottomInfoBar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -295,7 +295,7 @@
             android:layout_gravity="center"
             android:gravity="center"
             android:orientation="horizontal"
-            android:paddingHorizontal="8dp">
+            android:paddingHorizontal="12dp">
 
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/prevButton"
