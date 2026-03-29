@@ -14,10 +14,11 @@
     </style>
 
     <style name="ControlButtonSmall" parent="ControlImageButtonBase">
-        <item name="android:layout_width">76dp</item>
-        <item name="android:layout_height">76dp</item>
+        <item name="android:layout_width">74dp</item>
+        <item name="android:layout_height">62dp</item>
         <item name="android:layout_marginHorizontal">3dp</item>
         <item name="android:background">@drawable/bg_control_button</item>
+        <item name="android:padding">10dp</item>
     </style>
 
     <style name="ControlButtonCenter" parent="ControlImageButtonBase">
