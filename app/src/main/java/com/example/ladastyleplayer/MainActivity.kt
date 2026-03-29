@@ -306,12 +306,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupButtons() {
         findViewById<ImageButton>(R.id.browseButton).setOnClickListener {
-            chooseFolderLauncher.launch(null)
-            Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
-        }
-        findViewById<ImageButton>(R.id.browseButton).setOnLongClickListener {
+            Log.d(TAG, "browseButton click: launching single audio picker")
             chooseAudioLauncher.launch(arrayOf("audio/*"))
             Toast.makeText(this, R.string.file_picker_hint, Toast.LENGTH_SHORT).show()
+        }
+        findViewById<ImageButton>(R.id.browseButton).setOnLongClickListener {
+            Log.d(TAG, "browseButton long-click: launching folder tree picker")
+            chooseFolderLauncher.launch(null)
+            Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
             true
         }
         playPauseButton.setOnClickListener {
@@ -348,6 +350,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openTree(uri: Uri, resume: Boolean = false) {
+        Log.d(TAG, "openTree(uri=$uri, resume=$resume)")
         try {
             val root = DocumentFile.fromTreeUri(this, uri)
             if (root == null || !root.exists()) {
