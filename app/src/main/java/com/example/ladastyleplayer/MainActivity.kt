@@ -301,11 +301,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupButtons() {
         findViewById<ImageButton>(R.id.browseButton).setOnLongClickListener {
-            chooseAudioLauncher.launch(arrayOf("audio/*"))
+            chooseFolderLauncher.launch(null)
             true
         }
         findViewById<ImageButton>(R.id.browseButton).setOnClickListener {
-            chooseFolderLauncher.launch(null)
+            chooseAudioLauncher.launch(arrayOf("audio/*"))
             Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
         }
         playPauseButton.setOnClickListener {
