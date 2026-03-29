@@ -3,6 +3,7 @@
     <string name="status_no_usb">USB folder is not selected</string>
     <string name="status_usb_ready">USB ready</string>
     <string name="status_usb_connected">USB Connected</string>
+    <string name="status_no_sources">No sources configured</string>
     <string name="cover_desc">Track cover</string>
     <string name="no_track">No track playing</string>
     <string name="mute">Mute</string>
@@ -17,6 +18,17 @@
     <string name="usb_disconnected">USB disconnected, choose folder again</string>
     <string name="choose_folder">Choose USB folder</string>
     <string name="folder_picker_hint">Pick a music folder</string>
+    <string name="add_music_source">Add a music source</string>
+    <string name="select_source_hint">Select a source from the left panel</string>
+    <string name="source_unavailable_suffix">Unavailable</string>
+    <string name="sources">Sources</string>
+    <string name="path_sources">Sources</string>
+    <string name="path_source">%1$s • Music</string>
+    <string name="path_source_branch">%1$s • %2$s</string>
+    <string name="top_source_roots">Select source roots</string>
+    <string name="top_source_branches">Browsing %1$s</string>
+    <string name="showing_music_in">Showing music in %1$s</string>
+    <string name="no_music_branches">No music-relevant folders in this source</string>
     <string name="file_picker_hint">Pick a song</string>
     <string name="file_pick_cancelled">Audio selection canceled</string>
     <string name="folder_pick_cancelled">Folder selection canceled</string>

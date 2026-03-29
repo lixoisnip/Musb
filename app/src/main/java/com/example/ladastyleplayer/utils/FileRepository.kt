@@ -10,7 +10,6 @@ import java.util.Locale
  * Repository for SAF-backed folder browsing and audio file collection.
  */
 class FileRepository {
-
     data class BranchContent(
         val subfolders: List<DocumentFile>,
         val audioFiles: List<DocumentFile>
@@ -86,6 +85,20 @@ class FileRepository {
             subfolders = relevantSubfolders,
             audioFiles = sortedFiles
         )
+    }
+
+    fun suggestSourceLabel(folderName: String?, treeUri: String): String {
+        val normalized = (folderName ?: "").trim()
+        if (normalized.isNotBlank()) return normalized
+        val lowerUri = treeUri.lowercase(Locale.ROOT)
+        return when {
+            "download" in lowerUri -> "Download"
+            "music" in lowerUri -> "Music"
+            "usb" in lowerUri -> "USB"
+            "sd" in lowerUri || "card" in lowerUri -> "SD card"
+            "primary" in lowerUri -> "Internal storage"
+            else -> "Source"
+        }
     }
 
     fun sortFoldersStable(folders: List<DocumentFile>): List<DocumentFile> {
