@@ -1,24 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_pressed="true">
-        <shape android:shape="rectangle">
-            <gradient android:angle="270" android:startColor="#36414D" android:endColor="#1B232D" />
-            <corners android:radius="10dp" />
-            <stroke android:width="1dp" android:color="#586678" />
-        </shape>
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <gradient android:angle="270" android:startColor="#3A4756" android:endColor="#1A2430" />
+                    <corners android:radius="10dp" />
+                    <stroke android:width="1dp" android:color="#617287" />
+                </shape>
+            </item>
+            <item android:left="3dp" android:top="3dp" android:right="3dp" android:bottom="3dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <stroke android:width="1dp" android:color="#243140" />
+                </shape>
+            </item>
+        </layer-list>
     </item>
     <item android:state_activated="true">
-        <shape android:shape="rectangle">
-            <gradient android:angle="270" android:startColor="@color/list_item_selected_top" android:endColor="@color/list_item_selected" />
-            <corners android:radius="10dp" />
-            <stroke android:width="1dp" android:color="@color/accent_amber" />
-        </shape>
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <gradient android:angle="270" android:startColor="#A66D35" android:endColor="#603B1A" />
+                    <corners android:radius="10dp" />
+                    <stroke android:width="1.2dp" android:color="#E1A15A" />
+                </shape>
+            </item>
+            <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
+                <shape android:shape="rectangle">
+                    <gradient android:angle="270" android:startColor="#7A4D24" android:endColor="#4E3016" />
+                    <corners android:radius="8.5dp" />
+                    <stroke android:width="1dp" android:color="#B57A40" />
+                </shape>
+            </item>
+        </layer-list>
     </item>
     <item>
-        <shape android:shape="rectangle">
-            <gradient android:angle="270" android:startColor="#2D3640" android:endColor="#171E27" />
-            <corners android:radius="10dp" />
-            <stroke android:width="1dp" android:color="#384352" />
-        </shape>
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <gradient android:angle="270" android:startColor="#303A46" android:endColor="#161F2A" />
+                    <corners android:radius="10dp" />
+                    <stroke android:width="1dp" android:color="#404E5F" />
+                </shape>
+            </item>
+            <item android:left="3dp" android:top="3dp" android:right="3dp" android:bottom="3dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <stroke android:width="1dp" android:color="#202B39" />
+                </shape>
+            </item>
+        </layer-list>
     </item>
 </selector>
