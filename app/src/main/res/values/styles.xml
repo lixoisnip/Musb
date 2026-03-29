@@ -7,7 +7,6 @@
     </style>
 
     <style name="ControlImageButtonBase">
-        <item name="android:backgroundTint">@android:color/transparent</item>
         <item name="android:tint">@color/control_icon_tint</item>
         <item name="android:scaleType">centerInside</item>
         <item name="android:padding">11dp</item>
