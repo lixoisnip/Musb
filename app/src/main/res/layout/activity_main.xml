@@ -53,7 +53,7 @@
             android:ellipsize="end"
             android:gravity="end"
             android:maxLines="1"
-            android:text="Playing from Rock"
+            android:text="@string/top_source_placeholder"
             android:textColor="@color/text_muted"
             android:textSize="10sp" />
 
@@ -93,7 +93,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Folders"
+                android:text="@string/folders"
                 android:textColor="@color/text_primary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -240,7 +240,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Playlist"
+                android:text="@string/files"
                 android:textColor="@color/text_primary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -271,7 +271,7 @@
                 android:layout_marginTop="8dp"
                 android:background="@drawable/bg_now_playing_footer"
                 android:gravity="center"
-                android:text="@string/now_playing_footer"
+                android:text="@string/folder_files_footer"
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -387,7 +387,7 @@
             android:id="@+id/usbStatusText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="USB Connected"
+            android:text="@string/status_usb_connected"
             android:textColor="@color/text_secondary"
             android:textSize="11sp"
             android:textStyle="bold" />

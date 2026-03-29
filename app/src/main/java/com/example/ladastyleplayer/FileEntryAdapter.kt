@@ -1,6 +1,5 @@
 package com.example.ladastyleplayer
 
-import android.net.Uri
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -17,14 +16,20 @@ class FileEntryAdapter(
     private val showPlayFolderButton: Boolean,
     private val onFolderClick: (DocumentFile) -> Unit,
     private val onFileClick: (DocumentFile) -> Unit,
-    private val onPlayFolder: (DocumentFile) -> Unit
+    private val onPlayFolder: (DocumentFile) -> Unit,
+    private val onUpClick: (() -> Unit)? = null
 ) : RecyclerView.Adapter<FileEntryAdapter.EntryViewHolder>() {
 
-    private val items = mutableListOf<DocumentFile>()
+    data class EntryItem(
+        val documentFile: DocumentFile? = null,
+        val isUpItem: Boolean = false
+    )
+
+    private val items = mutableListOf<EntryItem>()
     private var selectedUri: String? = null
     private var highlightedUri: String? = null
 
-    fun submitList(newItems: List<DocumentFile>) {
+    fun submitList(newItems: List<EntryItem>) {
         items.clear()
         items.addAll(newItems)
         notifyDataSetChanged()
@@ -42,12 +47,12 @@ class FileEntryAdapter(
 
     fun findPositionByUri(uri: String?): Int {
         if (uri.isNullOrBlank()) return RecyclerView.NO_POSITION
-        return items.indexOfFirst { it.uri.toString() == uri }
+        return items.indexOfFirst { it.documentFile?.uri?.toString() == uri }
     }
 
     fun getItemByUri(uri: String?): DocumentFile? {
         if (uri.isNullOrBlank()) return null
-        return items.firstOrNull { it.uri.toString() == uri }
+        return items.firstOrNull { it.documentFile?.uri?.toString() == uri }?.documentFile
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EntryViewHolder {
@@ -57,43 +62,41 @@ class FileEntryAdapter(
 
     override fun onBindViewHolder(holder: EntryViewHolder, position: Int) {
         val item = items[position]
-        holder.name.text = item.name ?: "-"
+        if (item.isUpItem) {
+            holder.name.text = ".."
+            holder.icon.text = "↩"
+            holder.duration.visibility = View.GONE
+            holder.playFolder.visibility = View.GONE
+            holder.itemView.isActivated = false
+            holder.itemView.setOnClickListener { onUpClick?.invoke() }
+            return
+        }
 
-        val uri = item.uri.toString()
+        val documentFile = item.documentFile ?: return
+        holder.name.text = documentFile.name ?: "-"
+
+        val uri = documentFile.uri.toString()
         holder.itemView.isActivated = uri == selectedUri || uri == highlightedUri
 
-        val depth = documentDepth(item.uri)
-        holder.name.setPaddingRelative(
-            8 * depth,
-            holder.name.paddingTop,
-            holder.name.paddingEnd,
-            holder.name.paddingBottom
-        )
-
-        if (item.isDirectory) {
+        if (documentFile.isDirectory) {
             holder.icon.text = "📁"
             holder.duration.visibility = View.GONE
             holder.playFolder.visibility = if (showPlayFolderButton) View.VISIBLE else View.GONE
-            holder.itemView.setOnClickListener { onFolderClick(item) }
-            holder.playFolder.setOnClickListener { onPlayFolder(item) }
+            holder.itemView.setOnClickListener { onFolderClick(documentFile) }
+            holder.playFolder.setOnClickListener { onPlayFolder(documentFile) }
         } else {
             holder.icon.text = "♪"
             holder.duration.visibility = View.VISIBLE
             holder.duration.text = "--:--"
             holder.playFolder.visibility = View.GONE
             holder.itemView.setOnClickListener {
-                Log.d(TAG, "File row tapped: uri=${item.uri}")
-                onFileClick(item)
+                Log.d(TAG, "File row tapped: uri=${documentFile.uri}")
+                onFileClick(documentFile)
             }
         }
     }
 
     override fun getItemCount(): Int = items.size
-
-    private fun documentDepth(uri: Uri): Int {
-        val docId = Uri.decode(uri.toString()).substringAfterLast(":", "")
-        return docId.count { it == '/' }.coerceIn(0, 4)
-    }
 
     class EntryViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val icon: TextView = view.findViewById(R.id.entryIcon)

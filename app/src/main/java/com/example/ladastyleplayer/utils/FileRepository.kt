@@ -6,7 +6,7 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 /**
- * Repository for SAF-backed folder browsing and recursive audio file collection.
+ * Repository for SAF-backed folder browsing and audio file collection.
  */
 class FileRepository {
 
@@ -19,23 +19,12 @@ class FileRepository {
     }
 
     /**
-     * Recursively collects supported audio files from [root] and its sub-folders.
+     * Collects supported audio files from [folder] without recursion.
      */
-    suspend fun collectAudioRecursive(root: DocumentFile): List<DocumentFile> = withContext(Dispatchers.IO) {
-        val output = mutableListOf<DocumentFile>()
-        collectRecursiveInternal(root, output)
-        output
-    }
-
-    private fun collectRecursiveInternal(folder: DocumentFile, output: MutableList<DocumentFile>) {
-        val children = folder.listFiles().sortedWith(entryComparator)
-        children.forEach { child ->
-            if (child.isDirectory) {
-                collectRecursiveInternal(child, output)
-            } else if (isSupportedAudio(child.name)) {
-                output += child
-            }
-        }
+    suspend fun listSupportedAudioFiles(folder: DocumentFile): List<DocumentFile> = withContext(Dispatchers.IO) {
+        folder.listFiles()
+            .filter { it.isFile && isSupportedAudio(it.name) }
+            .sortedWith(entryComparator)
     }
 
     internal fun isSupportedAudio(name: String?): Boolean {
