@@ -10,17 +10,21 @@ import java.util.Locale
  * Repository for SAF-backed folder browsing and audio file collection.
  */
 class FileRepository {
-    data class BranchContent(
-        val subfolders: List<DocumentFile>,
-        val audioFiles: List<DocumentFile>
-    )
-
     /**
      * Returns children sorted by directories first and then files, all alphabetically.
      */
     suspend fun listChildren(folder: DocumentFile): List<DocumentFile> = withContext(Dispatchers.IO) {
         val children = folder.listFiles().toList()
         children.sortedWith(entryComparator)
+    }
+
+    /**
+     * Returns only direct child folders sorted stably.
+     */
+    suspend fun listChildFoldersOnly(folder: DocumentFile): List<DocumentFile> = withContext(Dispatchers.IO) {
+        folder.listFiles()
+            .filter { it.isDirectory }
+            .let(::sortFoldersStable)
     }
 
     /**
@@ -64,27 +68,13 @@ class FileRepository {
     }
 
     /**
-     * Collects right-panel content for a selected branch.
-     * - subfolders are only direct children that lead to music
-     * - files are all branch tracks recursively
+     * Collects all folders recursively under [root], including [root].
      */
-    suspend fun collectBranchContent(folder: DocumentFile): BranchContent = withContext(Dispatchers.IO) {
-        val relevantSubfolders = folder.listFiles()
-            .filter { it.isDirectory && hasMusicInBranchInternal(it) }
-            .let(::sortFoldersStable)
-
-        val files = mutableListOf<DocumentFile>()
-        collectSupportedAudioRecursivelyInternal(folder, files)
-        val sortedFiles = sortTracksStable(files)
-        Log.d(
-            TAG,
-            "collectBranchContent folder=${folder.uri} subfolders=${relevantSubfolders.size} tracks=${sortedFiles.size}"
-        )
-
-        BranchContent(
-            subfolders = relevantSubfolders,
-            audioFiles = sortedFiles
-        )
+    suspend fun collectFolderTree(root: DocumentFile): List<DocumentFile> = withContext(Dispatchers.IO) {
+        val result = mutableListOf<DocumentFile>()
+        collectFoldersRecursivelyInternal(root, result)
+        Log.d(TAG, "collectFolderTree root=${root.uri} folders=${result.size}")
+        result
     }
 
     fun suggestSourceLabel(folderName: String?, treeUri: String): String {
@@ -130,6 +120,16 @@ class FileRepository {
                 child.isDirectory -> collectSupportedAudioRecursivelyInternal(child, acc)
             }
         }
+    }
+
+    private fun collectFoldersRecursivelyInternal(folder: DocumentFile, acc: MutableList<DocumentFile>) {
+        acc.add(folder)
+        folder.listFiles()
+            .filter { it.isDirectory }
+            .let(::sortFoldersStable)
+            .forEach { child ->
+                collectFoldersRecursivelyInternal(child, acc)
+            }
     }
 
     private val entryComparator = compareBy<DocumentFile>({ !it.isDirectory }, { it.name?.lowercase(Locale.ROOT) ?: "" })
