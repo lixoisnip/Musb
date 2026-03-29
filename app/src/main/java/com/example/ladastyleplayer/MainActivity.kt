@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.DocumentsContract
 import android.util.Log
 import android.util.Base64
 import android.view.View
@@ -80,6 +81,7 @@ class MainActivity : AppCompatActivity() {
     private var repeatMode = Player.REPEAT_MODE_OFF
     private var isMuted = false
     private var selectedLeftFolderUri: String? = null
+    private var rootTreeUri: Uri? = null
 
     private val clockRunnable = object : Runnable {
         override fun run() {
@@ -277,7 +279,8 @@ class MainActivity : AppCompatActivity() {
                 openFolder(folder)
             },
             onFileClick = { file -> playSingle(file) },
-            onPlayFolder = { folder -> playAll(folder, false) }
+            onPlayFolder = { folder -> playAll(folder, false) },
+            onUpClick = { navigateUp() }
         )
         rightAdapter = FileEntryAdapter(
             showPlayFolderButton = false,
@@ -345,9 +348,10 @@ class MainActivity : AppCompatActivity() {
                 showUsbError()
                 return
             }
+            rootTreeUri = uri
             pathText.text = "USB • Music"
-            topSourceText.text = "Playing from USB > Music"
-            usbStatusText.text = "USB Connected"
+            topSourceText.text = getString(R.string.top_source_placeholder)
+            usbStatusText.text = getString(R.string.status_usb_connected)
             currentFolder = root
             selectedLeftFolderUri = null
             openFolder(root)
@@ -382,39 +386,65 @@ class MainActivity : AppCompatActivity() {
 
         val folderName = folder.name ?: "Music"
         pathText.text = "USB • Music • $folderName"
-        topSourceText.text = "Playing from $folderName"
+        topSourceText.text = "Showing files in $folderName"
 
         mainScope.launch {
-            runCatching { repository.listChildren(folder) }
-                .onSuccess { items ->
-                    val folders = items.filter { it.isDirectory }
-                    val audioFiles = items.filter { it.isFile && repository.isSupportedAudio(it.name) }
-                    leftAdapter.submitList(folders)
-                    rightAdapter.submitList(audioFiles)
-
-                    val activeLeftSelection = selectedLeftFolderUri
-                        ?.takeIf { selectedUri ->
-                            folders.any { it.uri.toString() == selectedUri }
-                        }
-                    leftAdapter.setSelectedUri(activeLeftSelection)
-                    selectedLeftFolderUri = activeLeftSelection
-
-                    findViewById<TextView>(R.id.leftEmptyText).text =
-                        if (folder == currentFolder) getString(R.string.no_subfolders_found) else getString(R.string.no_folders_found)
-                    findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.no_supported_audio)
-                    findViewById<TextView>(R.id.leftEmptyText).visibility =
-                        if (folders.isEmpty()) View.VISIBLE else View.GONE
-                    findViewById<TextView>(R.id.rightEmptyText).visibility =
-                        if (audioFiles.isEmpty()) View.VISIBLE else View.GONE
-
-                    rightAdapter.setHighlightedUri(currentTrackUri)
+            runCatching {
+                repository.listChildren(folder)
+            }.onSuccess { items ->
+                val folders = items.filter { it.isDirectory }
+                val audioFiles = items.filter { it.isFile && repository.isSupportedAudio(it.name) }
+                val parentFolder = getParentFolder(folder)
+                val leftItems = buildList {
+                    if (parentFolder != null) {
+                        add(FileEntryAdapter.EntryItem(isUpItem = true))
+                    }
+                    addAll(folders.map { FileEntryAdapter.EntryItem(documentFile = it) })
                 }
-                .onFailure {
-                    showUsbError()
-                    findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
-                    findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
-                }
+                val rightItems = audioFiles.map { FileEntryAdapter.EntryItem(documentFile = it) }
+                leftAdapter.submitList(leftItems)
+                rightAdapter.submitList(rightItems)
+
+                val activeLeftSelection = selectedLeftFolderUri
+                    ?.takeIf { selectedUri ->
+                        folders.any { it.uri.toString() == selectedUri }
+                    }
+                leftAdapter.setSelectedUri(activeLeftSelection)
+                selectedLeftFolderUri = activeLeftSelection
+
+                findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.no_subfolders_found)
+                findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.no_supported_audio)
+                findViewById<TextView>(R.id.leftEmptyText).visibility =
+                    if (folders.isEmpty() && parentFolder == null) View.VISIBLE else View.GONE
+                findViewById<TextView>(R.id.rightEmptyText).visibility =
+                    if (audioFiles.isEmpty()) View.VISIBLE else View.GONE
+
+                rightAdapter.setHighlightedUri(currentTrackUri)
+            }.onFailure {
+                showUsbError()
+                findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
+                findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
+            }
         }
+    }
+
+    private fun navigateUp() {
+        val folder = currentFolder ?: return
+        val parentFolder = getParentFolder(folder) ?: return
+        selectedLeftFolderUri = parentFolder.uri.toString()
+        openFolder(parentFolder)
+    }
+
+    private fun getParentFolder(folder: DocumentFile): DocumentFile? {
+        val treeUri = rootTreeUri ?: return null
+        val rootDocId = runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull() ?: return null
+        val currentDocId = runCatching { DocumentsContract.getDocumentId(folder.uri) }.getOrNull() ?: return null
+        if (currentDocId == rootDocId) return null
+
+        val separatorIndex = currentDocId.lastIndexOf('/')
+        val parentDocId = if (separatorIndex >= 0) currentDocId.substring(0, separatorIndex) else rootDocId
+        val parentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, parentDocId)
+        return DocumentFile.fromTreeUri(this, parentUri)?.takeIf { it.exists() }
     }
 
     private fun selectLeftFolder(uri: String?) {
@@ -470,7 +500,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun playAll(folder: DocumentFile, resume: Boolean) {
         mainScope.launch {
-            val files = runCatching { repository.collectAudioRecursive(folder) }.getOrElse {
+            val files = runCatching { repository.listSupportedAudioFiles(folder) }.getOrElse {
                 showUsbError()
                 return@launch
             }
@@ -570,8 +600,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun showUsbError() {
         pathText.text = getString(R.string.status_no_usb)
-        topSourceText.text = "Playing from -"
-        usbStatusText.text = "USB Disconnected"
+        topSourceText.text = getString(R.string.top_source_placeholder)
+        usbStatusText.text = getString(R.string.status_no_usb)
         Toast.makeText(this, R.string.usb_disconnected, Toast.LENGTH_LONG).show()
     }
 

@@ -2,6 +2,7 @@
     <string name="app_name">LadaStylePlayer</string>
     <string name="status_no_usb">USB folder is not selected</string>
     <string name="status_usb_ready">USB ready</string>
+    <string name="status_usb_connected">USB Connected</string>
     <string name="cover_desc">Track cover</string>
     <string name="no_track">No track playing</string>
     <string name="mute">Mute</string>
@@ -12,7 +13,7 @@
     <string name="play_all">Play All</string>
     <string name="shuffle_label">Shuffle</string>
     <string name="repeat_label">Repeat</string>
-    <string name="list_label">Playlist view</string>
+    <string name="list_label">Files view</string>
     <string name="usb_disconnected">USB disconnected, choose folder again</string>
     <string name="choose_folder">Choose USB folder</string>
     <string name="folder_picker_hint">Folder picker opened (long press: single file)</string>
@@ -22,12 +23,14 @@
     <string name="playback_failed">Cannot play selected audio</string>
     <string name="no_supported_audio">No supported audio files found</string>
     <string name="folders">Folders</string>
-    <string name="playlist">Playlist</string>
+    <string name="files">Files</string>
     <string name="unknown_artist">Unknown artist</string>
     <string name="unknown_album">Folder information unavailable</string>
     <string name="no_folders_found">No folders in this location</string>
     <string name="no_subfolders_found">No subfolders in this location</string>
-    <string name="now_playing_footer">Now Playing Queue</string>
+    <string name="now_playing_footer">Now Playing</string>
+    <string name="folder_files_footer">Current Folder Files</string>
+    <string name="top_source_placeholder">Showing files in folder</string>
     <string name="prev_symbol">⏮</string>
     <string name="next_symbol">⏭</string>
     <string name="play_symbol">▶</string>
