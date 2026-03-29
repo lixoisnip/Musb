@@ -4,19 +4,19 @@
         <layer-list>
             <item>
                 <shape android:shape="oval">
-                    <solid android:color="@color/control_center_shell_pressed" />
+                    <gradient android:angle="270" android:startColor="#09131D" android:endColor="#03060B" />
                 </shape>
             </item>
             <item android:top="2dp" android:bottom="2dp" android:left="2dp" android:right="2dp">
                 <shape android:shape="oval">
-                    <gradient android:angle="270" android:startColor="#172230" android:endColor="#0A131D" />
-                    <stroke android:width="5.5dp" android:color="@color/control_center_ring_pressed" />
+                    <gradient android:angle="270" android:startColor="#1A2837" android:endColor="#0B151E" />
+                    <stroke android:width="5dp" android:color="@color/control_center_ring_pressed" />
                 </shape>
             </item>
             <item android:top="10dp" android:bottom="10dp" android:left="10dp" android:right="10dp">
                 <shape android:shape="oval">
-                    <stroke android:width="1dp" android:color="#1C2734" />
-                    <solid android:color="#09111B" />
+                    <stroke android:width="1dp" android:color="#26384A" />
+                    <gradient android:angle="270" android:startColor="#101B27" android:endColor="#08111A" />
                 </shape>
             </item>
             <item android:top="16dp" android:bottom="16dp" android:left="16dp" android:right="16dp">
@@ -28,6 +28,11 @@
                     <stroke android:width="1.4dp" android:color="@color/control_center_inner_stroke" />
                 </shape>
             </item>
+            <item android:top="19dp" android:bottom="70dp" android:left="26dp" android:right="26dp">
+                <shape android:shape="oval">
+                    <gradient android:angle="270" android:startColor="#66A4BDD8" android:endColor="#00A4BDD8" />
+                </shape>
+            </item>
         </layer-list>
     </item>
 
@@ -35,19 +40,19 @@
         <layer-list>
             <item>
                 <shape android:shape="oval">
-                    <solid android:color="@color/control_center_shell" />
+                    <gradient android:angle="270" android:startColor="#09131D" android:endColor="#02050A" />
                 </shape>
             </item>
             <item android:top="2dp" android:bottom="2dp" android:left="2dp" android:right="2dp">
                 <shape android:shape="oval">
-                    <gradient android:angle="270" android:startColor="#192635" android:endColor="#0B141E" />
-                    <stroke android:width="5.5dp" android:color="@color/control_center_ring" />
+                    <gradient android:angle="270" android:startColor="#1C2B3B" android:endColor="#0B151F" />
+                    <stroke android:width="5dp" android:color="@color/control_center_ring" />
                 </shape>
             </item>
             <item android:top="10dp" android:bottom="10dp" android:left="10dp" android:right="10dp">
                 <shape android:shape="oval">
-                    <stroke android:width="1dp" android:color="#1A2532" />
-                    <gradient android:angle="270" android:startColor="#0E1620" android:endColor="#09111A" />
+                    <stroke android:width="1dp" android:color="#2A3D51" />
+                    <gradient android:angle="270" android:startColor="#13202C" android:endColor="#08111A" />
                 </shape>
             </item>
             <item android:top="16dp" android:bottom="16dp" android:left="16dp" android:right="16dp">
@@ -57,6 +62,11 @@
                         android:endColor="@color/control_center_inner_bottom"
                         android:startColor="@color/control_center_inner_top" />
                     <stroke android:width="1.4dp" android:color="@color/control_center_inner_stroke" />
+                </shape>
+            </item>
+            <item android:top="19dp" android:bottom="70dp" android:left="26dp" android:right="26dp">
+                <shape android:shape="oval">
+                    <gradient android:angle="270" android:startColor="#73B2CAE3" android:endColor="#00B2CAE3" />
                 </shape>
             </item>
         </layer-list>
