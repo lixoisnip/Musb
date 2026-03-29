@@ -17,70 +17,70 @@
     <color name="list_item_selected_top">#9A6632</color>
     <color name="chip_bg">#2A313A</color>
 
-    <color name="control_small_top">#5C6F84</color>
-    <color name="control_small_bottom">#2E3E4F</color>
-    <color name="control_small_pressed_top">#687D95</color>
-    <color name="control_small_pressed_bottom">#354A60</color>
-    <color name="control_small_active_top">#7490AE</color>
-    <color name="control_small_active_bottom">#455F78</color>
-    <color name="control_small_disabled_top">#3A4653</color>
-    <color name="control_small_disabled_bottom">#242F3A</color>
+    <color name="control_small_top">#66FF66</color>
+    <color name="control_small_bottom">#32CD32</color>
+    <color name="control_small_pressed_top">#7CFF7C</color>
+    <color name="control_small_pressed_bottom">#2EB82E</color>
+    <color name="control_small_active_top">#8CFF8C</color>
+    <color name="control_small_active_bottom">#36C936</color>
+    <color name="control_small_disabled_top">#5CAB5C</color>
+    <color name="control_small_disabled_bottom">#3A7F3A</color>
 
-    <color name="control_small_shell_top">#273544</color>
-    <color name="control_small_shell_bottom">#151F2B</color>
-    <color name="control_small_shell_pressed_top">#314457</color>
-    <color name="control_small_shell_pressed_bottom">#1D2D3E</color>
-    <color name="control_small_shell_active_top">#3B536C</color>
-    <color name="control_small_shell_active_bottom">#24364A</color>
-    <color name="control_small_shell_disabled_top">#1D2834</color>
-    <color name="control_small_shell_disabled_bottom">#111A25</color>
+    <color name="control_small_shell_top">#1F8F1F</color>
+    <color name="control_small_shell_bottom">#126B12</color>
+    <color name="control_small_shell_pressed_top">#25A825</color>
+    <color name="control_small_shell_pressed_bottom">#158015</color>
+    <color name="control_small_shell_active_top">#2FB52F</color>
+    <color name="control_small_shell_active_bottom">#1B8C1B</color>
+    <color name="control_small_shell_disabled_top">#3F7F3F</color>
+    <color name="control_small_shell_disabled_bottom">#2E5F2E</color>
 
-    <color name="control_small_shell_stroke">#8DA8C4</color>
-    <color name="control_small_shell_stroke_pressed">#A2BDD8</color>
-    <color name="control_small_shell_stroke_active">#BBD6EF</color>
-    <color name="control_small_shell_stroke_disabled">#5F768E</color>
+    <color name="control_small_shell_stroke">#0A3D0A</color>
+    <color name="control_small_shell_stroke_pressed">#082F08</color>
+    <color name="control_small_shell_stroke_active">#062606</color>
+    <color name="control_small_shell_stroke_disabled">#1F4F1F</color>
 
-    <color name="control_small_stroke">#D4E6F7</color>
-    <color name="control_small_stroke_pressed">#E1F0FD</color>
-    <color name="control_small_stroke_active">#F0F8FF</color>
-    <color name="control_small_stroke_disabled">#8FA3B7</color>
+    <color name="control_small_stroke">#0E3A0E</color>
+    <color name="control_small_stroke_pressed">#0B300B</color>
+    <color name="control_small_stroke_active">#072707</color>
+    <color name="control_small_stroke_disabled">#2A4A2A</color>
 
-    <color name="control_small_inner_top">#50677F</color>
-    <color name="control_small_inner_bottom">#2A3A49</color>
-    <color name="control_small_inner_pressed_top">#5B7490</color>
-    <color name="control_small_inner_pressed_bottom">#324558</color>
-    <color name="control_small_inner_active_top">#6786A9</color>
-    <color name="control_small_inner_active_bottom">#3D5770</color>
-    <color name="control_small_inner_stroke">#2A3A4A</color>
+    <color name="control_small_inner_top">#74FF74</color>
+    <color name="control_small_inner_bottom">#40D940</color>
+    <color name="control_small_inner_pressed_top">#84FF84</color>
+    <color name="control_small_inner_pressed_bottom">#3ACA3A</color>
+    <color name="control_small_inner_active_top">#90FF90</color>
+    <color name="control_small_inner_active_bottom">#45D245</color>
+    <color name="control_small_inner_stroke">#145014</color>
 
-    <color name="control_small_highlight">#EEF7FF</color>
-    <color name="control_small_highlight_pressed">#F5FBFF</color>
-    <color name="control_small_highlight_active">#FFFFFF</color>
-    <color name="control_small_highlight_disabled">#98AABC</color>
+    <color name="control_small_highlight">#CCFFCC</color>
+    <color name="control_small_highlight_pressed">#D8FFD8</color>
+    <color name="control_small_highlight_active">#E4FFE4</color>
+    <color name="control_small_highlight_disabled">#A4DDA4</color>
 
-    <color name="control_center_shell_top">#2B3D52</color>
-    <color name="control_center_shell_bottom">#1A2838</color>
-    <color name="control_center_shell_pressed_top">#36506B</color>
-    <color name="control_center_shell_pressed_bottom">#22384E</color>
-    <color name="control_center_shell_stroke">#A9C0D8</color>
-    <color name="control_center_shell_stroke_pressed">#BDD4EA</color>
+    <color name="control_center_shell_top">#1C8F1C</color>
+    <color name="control_center_shell_bottom">#106A10</color>
+    <color name="control_center_shell_pressed_top">#22A122</color>
+    <color name="control_center_shell_pressed_bottom">#147A14</color>
+    <color name="control_center_shell_stroke">#062A06</color>
+    <color name="control_center_shell_stroke_pressed">#041F04</color>
 
-    <color name="control_center_ring">#E8B66E</color>
-    <color name="control_center_ring_pressed">#F1C987</color>
-    <color name="control_center_ring_back_top">#3D536B</color>
-    <color name="control_center_ring_back_bottom">#233447</color>
-    <color name="control_center_ring_back_pressed_top">#49647F</color>
-    <color name="control_center_ring_back_pressed_bottom">#2D455C</color>
+    <color name="control_center_ring">#2BFF2B</color>
+    <color name="control_center_ring_pressed">#3CFF3C</color>
+    <color name="control_center_ring_back_top">#6AFF6A</color>
+    <color name="control_center_ring_back_bottom">#36CC36</color>
+    <color name="control_center_ring_back_pressed_top">#78FF78</color>
+    <color name="control_center_ring_back_pressed_bottom">#32BE32</color>
 
-    <color name="control_center_inner_top">#54708F</color>
-    <color name="control_center_inner_bottom">#2F4358</color>
-    <color name="control_center_inner_pressed_top">#6384A8</color>
-    <color name="control_center_inner_pressed_bottom">#3A5672</color>
-    <color name="control_center_inner_stroke">#D0E3F5</color>
-    <color name="control_center_inner_stroke_pressed">#E1EEFC</color>
-    <color name="control_center_highlight">#F3FAFF</color>
-    <color name="control_center_highlight_pressed">#FFFFFF</color>
+    <color name="control_center_inner_top">#84FF84</color>
+    <color name="control_center_inner_bottom">#48D848</color>
+    <color name="control_center_inner_pressed_top">#92FF92</color>
+    <color name="control_center_inner_pressed_bottom">#40C840</color>
+    <color name="control_center_inner_stroke">#0A340A</color>
+    <color name="control_center_inner_stroke_pressed">#082808</color>
+    <color name="control_center_highlight">#D8FFD8</color>
+    <color name="control_center_highlight_pressed">#E6FFE6</color>
 
-    <color name="control_icon_tint">#F4F7FB</color>
-    <color name="control_icon_tint_dim">#758191</color>
+    <color name="control_icon_tint">#111111</color>
+    <color name="control_icon_tint_dim">#2B2B2B</color>
 </resources>
