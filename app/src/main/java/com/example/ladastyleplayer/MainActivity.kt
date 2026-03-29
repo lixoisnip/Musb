@@ -40,17 +40,6 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
-    data class SourceRoot(
-        val treeUri: Uri,
-        val label: String,
-        val isAvailable: Boolean
-    )
-
-    private enum class LeftPanelMode {
-        SOURCES,
-        BRANCHES
-    }
-
     private val prefs by lazy { getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
     private val repository = FileRepository()
     private val mainScope = CoroutineScope(Dispatchers.Main + Job())
@@ -89,13 +78,11 @@ class MainActivity : AppCompatActivity() {
     private var isShuffleOn = false
     private var repeatMode = Player.REPEAT_MODE_OFF
     private var isMuted = false
-    private var sourceRoots: List<SourceRoot> = emptyList()
-    private var selectedSourceRoot: SourceRoot? = null
+    private var sourceRoots: List<Uri> = emptyList()
+    private var selectedRootUri: Uri? = null
     private var selectedLeftKey: String? = null
     private var selectedLeftFolder: DocumentFile? = null
     private var currentRightTrackScope: DocumentFile? = null
-    private var leftPanelMode: LeftPanelMode = LeftPanelMode.SOURCES
-    private var singleFileModeActive: Boolean = false
     private var currentBreadcrumb: String = "Music"
 
     private val clockRunnable = object : Runnable {
@@ -257,7 +244,7 @@ class MainActivity : AppCompatActivity() {
         applyControlStates()
 
         loadPersistedSources()
-        showSourceRootsView()
+        refreshExplorerFromSelectedRoot()
     }
 
     override fun onStart() {
@@ -287,8 +274,7 @@ class MainActivity : AppCompatActivity() {
             },
             onFileClick = { file -> playSingle(file) },
             onPlayFolder = { _ -> },
-            onCustomClick = { sourceKey -> onSourceSelected(sourceKey) },
-            onUpClick = { showSourceRootsView() }
+            onUpClick = { navigateToParentFolder() }
         )
         rightAdapter = FileEntryAdapter(
             showPlayFolderButton = false,
@@ -353,12 +339,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun registerSourceRoot(uri: Uri) {
-        val root = DocumentFile.fromTreeUri(this, uri)
-        val label = repository.suggestSourceLabel(root?.name, uri.toString())
-        saveSourceLabel(uri, label)
         saveSourceUri(uri)
         loadPersistedSources(selectedUri = uri.toString())
-        enterSource(uri.toString())
+        refreshExplorerFromSelectedRoot()
     }
 
     private fun openTree(uri: Uri) {
@@ -396,60 +379,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadPersistedSources(selectedUri: String? = null) {
         val storedUris = prefs.getStringSet(KEY_SOURCE_URIS, emptySet())?.toList().orEmpty()
-        sourceRoots = storedUris.map { uriString ->
-            val parsed = Uri.parse(uriString)
-            val root = DocumentFile.fromTreeUri(this, parsed)
-            val available = root != null && root.exists()
-            val savedLabel = prefs.getString(sourceLabelKey(uriString), null)
-            val label = savedLabel ?: repository.suggestSourceLabel(root?.name, uriString)
-            SourceRoot(parsed, label, available)
-        }.sortedBy { it.label.lowercase(Locale.ROOT) }
+        sourceRoots = storedUris.map(::Uri.parse)
+            .filter { uri ->
+                val root = DocumentFile.fromTreeUri(this, uri)
+                root != null && root.exists() && root.isDirectory
+            }
         val selected = selectedUri ?: prefs.getString(KEY_SELECTED_SOURCE_URI, null)
-        selectedSourceRoot = sourceRoots.firstOrNull { it.treeUri.toString() == selected }
-    }
-
-    private fun showSourceRootsView() {
-        leftPanelMode = LeftPanelMode.SOURCES
-        singleFileModeActive = false
-        selectedLeftFolder = null
-        currentRightTrackScope = null
-        currentBreadcrumb = getString(R.string.sources)
-        pathText.text = getString(R.string.path_sources)
-        topSourceText.text = getString(R.string.top_source_roots)
-        usbStatusText.text = if (sourceRoots.isEmpty()) getString(R.string.status_no_sources) else getString(R.string.status_usb_connected)
-        renderSourcesOnLeft()
-        rightAdapter.submitList(emptyList())
-        findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.select_source_hint)
-        findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
-    }
-
-    private fun renderSourcesOnLeft() {
-        val sourceItems = sourceRoots.map { source ->
-            FileEntryAdapter.EntryItem(
-                customId = sourceKey(source.treeUri.toString()),
-                customName = if (source.isAvailable) source.label else "${source.label} (${getString(R.string.source_unavailable_suffix)})",
-                customIcon = "\uD83D\uDCC1",
-                isCustomFolder = true,
-                isEnabled = source.isAvailable
-            )
-        }
-        leftAdapter.submitList(sourceItems)
-        selectLeftItem(selectedSourceRoot?.let { sourceKey(it.treeUri.toString()) })
-        findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.add_music_source)
-        findViewById<TextView>(R.id.leftEmptyText).visibility = if (sourceItems.isEmpty()) View.VISIBLE else View.GONE
-    }
-
-    private fun onSourceSelected(key: String) {
-        val treeUri = key.removePrefix(SOURCE_KEY_PREFIX)
-        enterSource(treeUri)
-    }
-
-    private fun enterSource(sourceUriString: String) {
-        val source = sourceRoots.firstOrNull { it.treeUri.toString() == sourceUriString } ?: return
-        if (!source.isAvailable) return
-        selectedSourceRoot = source
-        prefs.edit { putString(KEY_SELECTED_SOURCE_URI, sourceUriString) }
-        refreshMusicExplorerForSource(source)
+        selectedRootUri = sourceRoots.firstOrNull { it.toString() == selected } ?: sourceRoots.firstOrNull()
+        selectedRootUri?.let { prefs.edit { putString(KEY_SELECTED_SOURCE_URI, it.toString()) } }
     }
 
     private fun playSelectedAudio(uri: Uri) {
@@ -525,18 +462,26 @@ class MainActivity : AppCompatActivity() {
         return if (canListChildren) folder else null
     }
 
-    private fun refreshMusicExplorerForSource(source: SourceRoot) {
-        val root = DocumentFile.fromTreeUri(this, source.treeUri)
-        Log.d(TAG, "refreshMusicExplorer(root=${source.treeUri})")
-        if (root == null || !root.exists()) {
-            showUsbError()
-            showSourceRootsView()
+    private fun refreshExplorerFromSelectedRoot() {
+        val activeRootUri = selectedRootUri
+        if (activeRootUri == null) {
+            usbStatusText.text = getString(R.string.status_no_sources)
+            leftAdapter.submitList(emptyList())
+            rightAdapter.submitList(emptyList())
+            findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.add_music_source)
+            findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
+            findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.select_source_hint)
+            findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
             return
         }
-        singleFileModeActive = false
-        leftPanelMode = LeftPanelMode.BRANCHES
+        val root = DocumentFile.fromTreeUri(this, activeRootUri)
+        Log.d(TAG, "refreshExplorerFromSelectedRoot(root=$activeRootUri)")
+        if (root == null || !root.exists()) {
+            showUsbError()
+            return
+        }
         usbStatusText.text = getString(R.string.status_usb_connected)
-        renderPanelsForSelectedFolder(selectedFolder = root, source = source, selectedTrackUri = currentTrackUri)
+        renderFolderBranch(selectedFolder = root, rootFolder = root, selectedTrackUri = currentTrackUri)
     }
 
     private fun openBranch(folder: DocumentFile) {
@@ -544,40 +489,46 @@ class MainActivity : AppCompatActivity() {
         selectedLeftFolder = folder
         currentRightTrackScope = folder
         selectLeftItem(folder.uri.toString())
-        val source = selectedSourceRoot
-        if (source != null) {
-            renderPanelsForSelectedFolder(folder, source, currentTrackUri)
-        } else {
-            renderStandaloneFolderContext(folder, currentTrackUri)
+        val root = selectedRootUri?.let { DocumentFile.fromTreeUri(this, it) }
+        if (root != null && isDescendantOfBranch(folder, root)) {
+            renderFolderBranch(folder, root, currentTrackUri)
+            return
         }
+        renderStandaloneFolderContext(folder, currentTrackUri)
     }
 
-    private fun renderPanelsForSelectedFolder(
+    private fun renderFolderBranch(
         selectedFolder: DocumentFile,
-        source: SourceRoot,
+        rootFolder: DocumentFile,
         selectedTrackUri: String?
     ) {
         mainScope.launch {
-            val root = DocumentFile.fromTreeUri(this@MainActivity, source.treeUri)
-            if (root == null || !root.exists()) {
+            if (!rootFolder.exists()) {
                 showUsbError()
                 return@launch
             }
 
-            val folderTree = runCatching { repository.collectFolderTree(root) }.getOrElse {
-                Log.d(TAG, "renderPanelsForSelectedFolder tree failure root=${source.treeUri}: ${it.message}")
+            val folderTree = runCatching { repository.collectFolderTree(selectedFolder) }.getOrElse {
+                Log.d(TAG, "renderFolderBranch tree failure root=${selectedFolder.uri}: ${it.message}")
                 showUsbError()
                 return@launch
             }
-            val effectiveFolder = folderTree.firstOrNull { it.uri == selectedFolder.uri } ?: selectedFolder
+            val effectiveFolder = folderTree.firstOrNull()
+                ?.takeIf { it.uri == selectedFolder.uri }
+                ?: selectedFolder
             selectedLeftFolder = effectiveFolder
             currentRightTrackScope = effectiveFolder
-            val breadcrumb = buildBreadcrumb(effectiveFolder, source.treeUri)
+            val breadcrumb = buildBreadcrumb(effectiveFolder, rootFolder.uri)
             currentBreadcrumb = breadcrumb
-            pathText.text = getString(R.string.path_source_branch, source.label, breadcrumb)
+            pathText.text = breadcrumb
             topSourceText.text = getString(R.string.showing_music_in, breadcrumb)
 
-            val leftItems = folderTree.map { FileEntryAdapter.EntryItem(documentFile = it) }
+            val showUp = if (effectiveFolder.uri != rootFolder.uri) 1 else 0
+            val leftItems = ArrayList<FileEntryAdapter.EntryItem>(folderTree.size + showUp)
+            if (effectiveFolder.uri != rootFolder.uri) {
+                leftItems.add(FileEntryAdapter.EntryItem(isUpItem = true))
+            }
+            leftItems.addAll(folderTree.map { FileEntryAdapter.EntryItem(documentFile = it) })
             leftAdapter.submitList(leftItems)
             selectLeftItem(effectiveFolder.uri.toString())
             findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.no_folders_found)
@@ -609,7 +560,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun resolveContainingFolderFromPickedFile(fileUri: Uri): DocumentFile? {
-        val treeUri = selectedSourceRoot?.treeUri ?: return null
+        val treeUri = selectedRootUri ?: return null
         val authority = fileUri.authority
         if (authority.isNullOrBlank() || authority != treeUri.authority) {
             Log.d(TAG, "resolveContainingFolderFromPickedFile skipped: authority mismatch tree=${treeUri.authority} file=$authority uri=$fileUri")
@@ -679,11 +630,11 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun alignExplorerToFolder(folder: DocumentFile) {
         Log.d(TAG, "resolved containing folder uri=${folder.uri}")
-        val source = selectedSourceRoot
-        if (source != null) {
-            val root = DocumentFile.fromTreeUri(this, source.treeUri)
+        val rootUri = selectedRootUri
+        if (rootUri != null) {
+            val root = DocumentFile.fromTreeUri(this, rootUri)
             if (root != null && isDescendantOfBranch(folder, root)) {
-                renderPanelsForSelectedFolder(folder, source, currentTrackUri)
+                renderFolderBranch(folder, root, currentTrackUri)
                 return
             }
         }
@@ -691,18 +642,42 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun renderStandaloneFolderContext(folder: DocumentFile, selectedTrackUri: String?) {
-        singleFileModeActive = true
-        leftPanelMode = LeftPanelMode.BRANCHES
         selectedLeftFolder = folder
         currentRightTrackScope = folder
         currentBreadcrumb = folder.name ?: "Music"
         pathText.text = currentBreadcrumb
         topSourceText.text = getString(R.string.showing_music_in, currentBreadcrumb)
         usbStatusText.text = getString(R.string.status_usb_connected)
-        leftAdapter.submitList(listOf(FileEntryAdapter.EntryItem(documentFile = folder)))
-        selectLeftItem(folder.uri.toString())
-        findViewById<TextView>(R.id.leftEmptyText).visibility = View.GONE
-        renderRightTracksForSelectedFolder(folder, selectedTrackUri)
+        mainScope.launch {
+            val folderTree = runCatching { repository.collectFolderTree(folder) }.getOrElse {
+                leftAdapter.submitList(listOf(FileEntryAdapter.EntryItem(documentFile = folder)))
+                selectLeftItem(folder.uri.toString())
+                renderRightTracksForSelectedFolder(folder, selectedTrackUri)
+                return@launch
+            }
+            leftAdapter.submitList(folderTree.map { FileEntryAdapter.EntryItem(documentFile = it) })
+            selectLeftItem(folder.uri.toString())
+            findViewById<TextView>(R.id.leftEmptyText).visibility = View.GONE
+            renderRightTracksForSelectedFolder(folder, selectedTrackUri)
+        }
+    }
+
+    private fun navigateToParentFolder() {
+        val current = selectedLeftFolder ?: return
+        val root = selectedRootUri?.let { DocumentFile.fromTreeUri(this, it) } ?: return
+        val parent = resolveParentWithinRoot(current, root) ?: return
+        openBranch(parent)
+    }
+
+    private fun resolveParentWithinRoot(folder: DocumentFile, root: DocumentFile): DocumentFile? {
+        val rootDocId = runCatching { DocumentsContract.getTreeDocumentId(root.uri) }.getOrNull() ?: return null
+        val currentDocId = runCatching { DocumentsContract.getDocumentId(folder.uri) }.getOrNull() ?: return null
+        if (currentDocId == rootDocId) return null
+        val separatorIndex = currentDocId.lastIndexOf('/')
+        val parentDocId = if (separatorIndex > 0) currentDocId.substring(0, separatorIndex) else rootDocId
+        val parentUri = DocumentsContract.buildDocumentUriUsingTree(root.uri, parentDocId)
+        val parent = DocumentFile.fromTreeUri(this, parentUri) ?: return null
+        return if (parent.exists() && parent.isDirectory) parent else null
     }
 
     private fun selectLeftItem(key: String?) {
@@ -792,18 +767,6 @@ class MainActivity : AppCompatActivity() {
         prefs.edit { putStringSet(KEY_SOURCE_URIS, current) }
     }
 
-    private fun saveSourceLabel(uri: Uri, label: String) {
-        prefs.edit { putString(sourceLabelKey(uri.toString()), label) }
-    }
-
-    private fun sourceLabelKey(uriString: String): String {
-        return "${KEY_SOURCE_LABEL_PREFIX}${uriString.hashCode()}"
-    }
-
-    private fun sourceKey(uriString: String): String {
-        return "$SOURCE_KEY_PREFIX$uriString"
-    }
-
     private fun updateProgress(positionMs: Long, durationMs: Long) {
         latestDurationMs = durationMs
         val safeDuration = if (durationMs > 0) durationMs else 1L
@@ -884,8 +847,6 @@ class MainActivity : AppCompatActivity() {
         private const val PREFS_NAME = "player_prefs"
         private const val KEY_SOURCE_URIS = "source_uris"
         private const val KEY_SELECTED_SOURCE_URI = "selected_source_uri"
-        private const val KEY_SOURCE_LABEL_PREFIX = "source_label_"
-        private const val SOURCE_KEY_PREFIX = "source:"
         private const val CLOCK_REFRESH_MS = 30_000L
         private const val PLAYER_PROGRESS_POLL_MS = 1_000L
     }
