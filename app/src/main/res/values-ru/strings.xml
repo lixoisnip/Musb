@@ -16,6 +16,7 @@
     <string name="file_pick_cancelled">Выбор аудиофайла отменён</string>
     <string name="folder_pick_cancelled">Выбор папки отменён</string>
     <string name="uri_permission_failed">Нет доступа к выбранному элементу</string>
+    <string name="file_context_unavailable">Файл проигрывается, но контекст папки недоступен</string>
     <string name="playback_failed">Не удалось воспроизвести выбранный файл</string>
     <string name="no_supported_audio">Поддерживаемые аудиофайлы не найдены</string>
 </resources>
