@@ -362,6 +362,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun playSelectedAudio(uri: Uri) {
+        Log.d(TAG, "playSelectedAudio requested uri=$uri")
         val persistResult = persistUriPermission(uri)
         Log.d(TAG, "playSelectedAudio persistUriPermission(uri=$uri)=$persistResult")
         val hasReadAccess = hasReadAccess(uri)
@@ -379,9 +380,23 @@ class MainActivity : AppCompatActivity() {
         }
         Log.d(TAG, "Dispatching ACTION_PLAY_SINGLE with EXTRA_SINGLE_URI=$uri")
         startService(intent)
+
+        currentTrackUri = uri.toString()
+        rightAdapter.setHighlightedUri(currentTrackUri)
+
+        val parentFolder = resolveParentFolderFromPickedFile(uri)
+        if (parentFolder != null) {
+            Log.d(TAG, "playSelectedAudio resolved parent folder uri=${parentFolder.uri}")
+            selectLeftFolder(null)
+            openFolder(parentFolder)
+        } else {
+            Log.d(TAG, "playSelectedAudio fallback: folder context unavailable for uri=$uri")
+            Toast.makeText(this, R.string.file_context_unavailable, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun openFolder(folder: DocumentFile) {
+        Log.d(TAG, "openFolder folderUri=${folder.uri} name=${folder.name}")
         currentFolder = folder
 
         val folderName = folder.name ?: "Music"
@@ -426,6 +441,63 @@ class MainActivity : AppCompatActivity() {
                 findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
             }
         }
+    }
+
+    private fun resolveParentFolderFromPickedFile(fileUri: Uri): DocumentFile? {
+        val authority = fileUri.authority
+        if (authority.isNullOrBlank()) {
+            Log.d(TAG, "resolveParentFolderFromPickedFile skipped: missing authority uri=$fileUri")
+            return null
+        }
+
+        val docId = runCatching { DocumentsContract.getDocumentId(fileUri) }
+            .onFailure { Log.d(TAG, "resolveParentFolderFromPickedFile no documentId for uri=$fileUri: ${it.message}") }
+            .getOrNull()
+            ?: return null
+        val separatorIndex = docId.lastIndexOf('/')
+        if (separatorIndex <= 0) {
+            Log.d(TAG, "resolveParentFolderFromPickedFile no parent docId for docId=$docId")
+            return null
+        }
+        val parentDocId = docId.substring(0, separatorIndex)
+        Log.d(TAG, "resolveParentFolderFromPickedFile docId=$docId parentDocId=$parentDocId")
+
+        val candidates = buildList {
+            val treeUri = rootTreeUri
+            if (treeUri != null && treeUri.authority == authority) {
+                val treeCandidate = DocumentsContract.buildDocumentUriUsingTree(treeUri, parentDocId)
+                add(treeCandidate to "tree")
+            }
+            val singleCandidate = DocumentsContract.buildDocumentUri(authority, parentDocId)
+            add(singleCandidate to "single")
+        }
+
+        candidates.forEach { (candidateUri, source) ->
+            val folder = when (source) {
+                "tree" -> DocumentFile.fromTreeUri(this, candidateUri)
+                else -> DocumentFile.fromSingleUri(this, candidateUri)
+            } ?: return@forEach
+
+            if (!folder.exists() || !folder.isDirectory) {
+                Log.d(
+                    TAG,
+                    "resolveParentFolderFromPickedFile rejected $source candidate uri=$candidateUri exists=${folder.exists()} isDirectory=${folder.isDirectory}"
+                )
+                return@forEach
+            }
+
+            val canListChildren = runCatching { repository.listChildren(folder); true }.getOrElse { false }
+            Log.d(
+                TAG,
+                "resolveParentFolderFromPickedFile candidate source=$source uri=$candidateUri canListChildren=$canListChildren"
+            )
+            if (canListChildren) {
+                return folder
+            }
+        }
+
+        Log.d(TAG, "resolveParentFolderFromPickedFile failed for uri=$fileUri")
+        return null
     }
 
     private fun navigateUp() {
