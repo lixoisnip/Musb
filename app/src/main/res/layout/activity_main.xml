@@ -306,9 +306,9 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_controls_cluster"
-        android:paddingHorizontal="8dp"
-        android:paddingTop="9dp"
-        android:paddingBottom="7dp"
+        android:paddingHorizontal="6dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="6dp"
         app:layout_constraintBottom_toTopOf="@id/bottomInfoBar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -319,7 +319,7 @@
             android:layout_gravity="center"
             android:gravity="center"
             android:orientation="horizontal"
-            android:paddingHorizontal="6dp">
+            android:paddingHorizontal="4dp">
 
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/prevButton"
