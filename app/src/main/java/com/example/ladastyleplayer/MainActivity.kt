@@ -602,12 +602,23 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun renderStandaloneFileFallback(fileUri: Uri, fallbackFolder: DocumentFile?) {
         if (fallbackFolder != null && fallbackFolder.exists() && fallbackFolder.isDirectory) {
-            Log.d(
-                TAG,
-                "renderStandaloneFileFallback promotedToFolderContext=true folderUri=${fallbackFolder.uri}"
-            )
-            alignExplorerToFolder(fallbackFolder)
-            return
+            val promoted = runCatching {
+                alignExplorerToFolder(fallbackFolder)
+                true
+            }.getOrElse {
+                Log.d(
+                    TAG,
+                    "renderStandaloneFileFallback promotedToFolderContext failed folderUri=${fallbackFolder.uri}: ${it.message}"
+                )
+                false
+            }
+            if (promoted) {
+                Log.d(
+                    TAG,
+                    "renderStandaloneFileFallback promotedToFolderContext=true folderUri=${fallbackFolder.uri}"
+                )
+                return
+            }
         }
 
         val selectedFile = DocumentFile.fromSingleUri(this, fileUri)
