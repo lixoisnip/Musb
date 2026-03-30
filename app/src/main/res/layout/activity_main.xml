@@ -312,12 +312,12 @@
     <FrameLayout
         android:id="@+id/controlRow"
         android:layout_width="0dp"
-        android:layout_height="160dp"
+        android:layout_height="176dp"
         android:background="@drawable/bg_controls_cluster"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:paddingHorizontal="0dp"
-        android:paddingTop="20dp"
+        android:paddingTop="18dp"
         android:paddingBottom="0dp"
         app:layout_constraintBottom_toTopOf="@id/bottomInfoBar"
         app:layout_constraintEnd_toEndOf="parent"
@@ -327,9 +327,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal|top"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="18dp"
             android:gravity="center"
             android:orientation="horizontal"
+            android:baselineAligned="false"
             android:paddingHorizontal="0dp">
 
             <androidx.appcompat.widget.AppCompatImageButton
@@ -363,7 +364,7 @@
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/playPauseButton"
                 style="@style/ControlButtonCenter"
-                android:translationZ="16dp"
+                android:translationZ="28dp"
                 android:contentDescription="@string/play_pause"
                 android:src="@drawable/ic_transport_play"
                 android:tint="@color/control_icon_tint_selector" />
