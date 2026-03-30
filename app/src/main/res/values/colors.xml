@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_main">#06080C</color>
-    <color name="surface_topbar">#1A1E25</color>
-    <color name="surface_panel_top">#1D232C</color>
-    <color name="surface_panel_bottom">#11161C</color>
+    <color name="bg_main">#05070D</color>
+    <color name="surface_topbar">#181F2A</color>
+    <color name="surface_panel_top">#1A2330</color>
+    <color name="surface_panel_bottom">#0D131D</color>
     <color name="surface_variant">#303742</color>
-    <color name="accent_amber">#BE7A34</color>
-    <color name="accent_amber_soft">#9A5F29</color>
-    <color name="accent_amber_dim">#352110</color>
+    <color name="accent_amber">#E49A3B</color>
+    <color name="accent_amber_soft">#AA6A2F</color>
+    <color name="accent_amber_dim">#4A2C12</color>
     <color name="text_primary">#F5F7FA</color>
-    <color name="text_secondary">#D4D9DF</color>
-    <color name="text_muted">#B8BEC6</color>
+    <color name="text_secondary">#CDD3DD</color>
+    <color name="text_muted">#9FA9B6</color>
     <color name="stroke_subtle">#313946</color>
     <color name="list_item_bg">#191E25</color>
     <color name="list_item_selected">#392616</color>

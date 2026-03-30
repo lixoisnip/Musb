@@ -4,10 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_main"
-    android:paddingStart="34dp"
-    android:paddingTop="4dp"
-    android:paddingEnd="34dp"
-    android:paddingBottom="8dp">
+    android:paddingStart="32dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="32dp"
+    android:paddingBottom="0dp">
 
     <LinearLayout
         android:id="@+id/topBar"
@@ -193,7 +193,7 @@
                 android:maxLines="1"
                 android:text="@string/unknown_album"
                 android:textColor="@color/text_muted"
-                android:textSize="11.5sp" />
+                android:textSize="13sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -309,10 +309,10 @@
     <FrameLayout
         android:id="@+id/controlRow"
         android:layout_width="0dp"
-        android:layout_height="63dp"
+        android:layout_height="160dp"
         android:background="@drawable/bg_controls_cluster"
         android:paddingHorizontal="0dp"
-        android:paddingTop="0dp"
+        android:paddingTop="14dp"
         android:paddingBottom="0dp"
         app:layout_constraintBottom_toTopOf="@id/bottomInfoBar"
         app:layout_constraintEnd_toEndOf="parent"
@@ -322,7 +322,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal|top"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="6dp"
             android:gravity="center"
             android:orientation="horizontal"
             android:paddingHorizontal="0dp">
@@ -396,13 +396,13 @@
     <LinearLayout
         android:id="@+id/bottomInfoBar"
         android:layout_width="0dp"
-        android:layout_height="29dp"
+        android:layout_height="52dp"
         android:layout_marginTop="0dp"
         android:background="@drawable/bg_bottom_info"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="12dp"
-        android:paddingEnd="6dp"
+        android:paddingStart="18dp"
+        android:paddingEnd="14dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -413,30 +413,30 @@
             android:layout_height="wrap_content"
             android:text="@string/status_usb_connected"
             android:textColor="@color/text_primary"
-            android:textSize="11.5sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/formatInfoText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="18dp"
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
             android:text="MP3 • 320 kbps • 44.1 kHz"
             android:textColor="@color/text_secondary"
-            android:textSize="11sp" />
+            android:textSize="12.5sp" />
 
         <TextView
             android:id="@+id/deviceBadgeText"
-            android:layout_width="190dp"
-            android:layout_height="25dp"
+            android:layout_width="212dp"
+            android:layout_height="34dp"
             android:background="@drawable/bg_device_badge"
             android:gravity="center"
             android:text="TEYES CC3"
             android:textColor="@color/text_primary"
-            android:textSize="15sp"
+            android:textSize="16sp"
             android:textStyle="bold" />
     </LinearLayout>
 
