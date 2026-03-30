@@ -13,19 +13,19 @@
     </style>
 
     <style name="ControlButtonSmall" parent="ControlImageButtonBase">
-        <item name="android:layout_width">48dp</item>
-        <item name="android:layout_height">24dp</item>
-        <item name="android:layout_marginHorizontal">8dp</item>
+        <item name="android:layout_width">92dp</item>
+        <item name="android:layout_height">84dp</item>
+        <item name="android:layout_marginHorizontal">10dp</item>
         <item name="android:background">@drawable/bg_control_button</item>
-        <item name="android:padding">6dp</item>
+        <item name="android:padding">22dp</item>
     </style>
 
     <style name="ControlButtonCenter" parent="ControlImageButtonBase">
-        <item name="android:layout_width">58dp</item>
-        <item name="android:layout_height">58dp</item>
-        <item name="android:layout_marginHorizontal">8dp</item>
-        <item name="android:layout_marginTop">-10dp</item>
+        <item name="android:layout_width">132dp</item>
+        <item name="android:layout_height">132dp</item>
+        <item name="android:layout_marginHorizontal">16dp</item>
+        <item name="android:layout_marginTop">-18dp</item>
         <item name="android:background">@drawable/bg_control_button_center</item>
-        <item name="android:padding">14dp</item>
+        <item name="android:padding">34dp</item>
     </style>
 </resources>
