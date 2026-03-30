@@ -73,7 +73,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="8dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="18dp"
         android:baselineAligned="false"
         android:orientation="horizontal"
         app:layout_constraintBottom_toTopOf="@id/controlRow"
@@ -181,7 +181,7 @@
                 android:textAlignment="center"
                 android:maxLines="1"
                 android:text="@string/unknown_artist"
-                android:textColor="@color/accent_amber"
+                android:textColor="@color/text_secondary"
                 android:textSize="14.5sp"
                 android:textStyle="bold" />
 
@@ -215,10 +215,10 @@
                     android:max="1000"
                     android:minHeight="19dp"
                     android:progress="0"
-                    android:progressBackgroundTint="#3A414C"
-                    android:progressTint="@color/accent_amber"
+                    android:progressBackgroundTint="@color/progress_track"
+                    android:progressTint="@color/progress_fill"
                     android:thumb="@drawable/bg_seekbar_thumb"
-                    android:thumbTint="@color/accent_amber" />
+                    android:thumbTint="@color/progress_fill" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -317,7 +317,7 @@
         android:clipChildren="false"
         android:clipToPadding="false"
         android:paddingHorizontal="0dp"
-        android:paddingTop="14dp"
+        android:paddingTop="20dp"
         android:paddingBottom="0dp"
         app:layout_constraintBottom_toTopOf="@id/bottomInfoBar"
         app:layout_constraintEnd_toEndOf="parent"
@@ -363,7 +363,7 @@
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/playPauseButton"
                 style="@style/ControlButtonCenter"
-                android:translationZ="32dp"
+                android:translationZ="16dp"
                 android:contentDescription="@string/play_pause"
                 android:src="@drawable/ic_transport_play"
                 android:tint="@color/control_icon_tint_selector" />
