@@ -21,16 +21,15 @@
         <layer-list>
             <item>
                 <shape android:shape="rectangle">
-                    <gradient android:angle="270" android:startColor="#A66D35" android:endColor="#603B1A" />
-                    <corners android:radius="10dp" />
-                    <stroke android:width="1.2dp" android:color="#E1A15A" />
+                    <gradient android:angle="270" android:startColor="#8D5C2A" android:endColor="#392616" />
+                    <corners android:radius="4dp" />
+                    <stroke android:width="1dp" android:color="#59B47330" />
                 </shape>
             </item>
-            <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
+            <item android:left="0dp" android:top="0dp" android:right="0dp" android:bottom="0dp">
                 <shape android:shape="rectangle">
-                    <gradient android:angle="270" android:startColor="#7A4D24" android:endColor="#4E3016" />
-                    <corners android:radius="8.5dp" />
-                    <stroke android:width="1dp" android:color="#B57A40" />
+                    <solid android:color="#00FFFFFF" />
+                    <corners android:radius="4dp" />
                 </shape>
             </item>
         </layer-list>
