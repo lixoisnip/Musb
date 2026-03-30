@@ -11,6 +11,14 @@ import java.util.Locale
  */
 class FileRepository {
     /**
+     * Returns true when the folder reference itself is readable as a directory.
+     * This does not require child enumeration to succeed.
+     */
+    suspend fun isKnownFolderReference(folder: DocumentFile): Boolean = withContext(Dispatchers.IO) {
+        runCatching { folder.exists() && folder.isDirectory }.getOrDefault(false)
+    }
+
+    /**
      * Returns children sorted by directories first and then files, all alphabetically.
      */
     suspend fun listChildren(folder: DocumentFile): List<DocumentFile> = withContext(Dispatchers.IO) {
