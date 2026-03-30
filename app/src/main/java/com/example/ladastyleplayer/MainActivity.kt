@@ -67,6 +67,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var muteButton: ImageButton
     private lateinit var usbStatusText: TextView
     private lateinit var rightRecycler: RecyclerView
+    private lateinit var leftRecycler: RecyclerView
     private lateinit var rightPanel: View
 
     private val coverPlaceholderRes = android.R.drawable.ic_menu_report_image
@@ -272,20 +273,24 @@ class MainActivity : AppCompatActivity() {
             onFolderClick = { _ -> },
             onFileClick = { file -> playSingle(file) },
             onPlayFolder = { _ -> },
-            onUpClick = null
-        )
-        rightAdapter = FileEntryAdapter(
-            showPlayFolderButton = false,
-            onFolderClick = { folder -> onRightFolderTapped(folder) },
-            onFileClick = { file -> playSingle(file) },
-            onPlayFolder = { _ -> },
+            onUpClick = null,
             hierarchicalIndent = false
         )
 
-        findViewById<RecyclerView>(R.id.leftRecycler).apply {
+        rightAdapter = FileEntryAdapter(
+            showPlayFolderButton = false,
+            onFolderClick = { folder -> onRightFolderTapped(folder) },
+            onFileClick = { _ -> },
+            onPlayFolder = { _ -> },
+            onUpClick = null,
+            hierarchicalIndent = true
+        )
+
+        leftRecycler = findViewById<RecyclerView>(R.id.leftRecycler).apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = leftAdapter
         }
+
         rightRecycler.apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = rightAdapter
@@ -526,36 +531,55 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.rightEmptyText).visibility = if (folderItems.isEmpty()) View.VISIBLE else View.GONE
     }
 
-    private suspend fun appendFolderNode(target: MutableList<FileEntryAdapter.EntryItem>, folder: DocumentFile) {
-        target += FileEntryAdapter.EntryItem(documentFile = folder)
+    private suspend fun appendFolderNode(
+        target: MutableList<FileEntryAdapter.EntryItem>,
+        folder: DocumentFile,
+        depth: Int = 0
+    ) {
+        target += FileEntryAdapter.EntryItem(documentFile = folder, depth = depth)
         if (!expandedRightFolderUris.contains(folder.uri.toString())) return
         val children = runCatching { repository.listChildFoldersOnly(folder) }.getOrElse { emptyList() }
-        children.forEach { child -> appendFolderNode(target, child) }
+        children.forEach { child -> appendFolderNode(target, child, depth + 1) }
     }
 
     private fun onRightFolderTapped(folder: DocumentFile) {
         val folderUri = folder.uri.toString()
-        val isExpanded = expandedRightFolderUris.contains(folderUri)
-        if (isExpanded && selectedRightFolder?.uri == folder.uri) {
-            collapseRightBranch(folder)
-            openBranch(folder, expandSelectedFolder = false)
-        } else {
+        val isActiveFolder = selectedRightFolder?.uri == folder.uri
+        if (!isActiveFolder) {
             expandedRightFolderUris += folderUri
             openBranch(folder)
+            return
+        }
+
+        val root = resolveActiveNavigationRoot(folder)
+        val parent = resolveParentWithinRoot(folder, root)
+        if (parent != null && parent.uri != folder.uri) {
+            collapseRightBranch(folder, includeSelf = true)
+            openBranch(parent)
+        } else {
+            collapseRightBranch(folder, includeSelf = false)
+            openBranch(folder, expandSelectedFolder = true)
         }
     }
 
-    private fun collapseRightBranch(folder: DocumentFile) {
+    private fun collapseRightBranch(folder: DocumentFile, includeSelf: Boolean) {
         val collapseDocId = runCatching { DocumentsContract.getDocumentId(folder.uri) }.getOrNull()
         if (collapseDocId == null) {
-            expandedRightFolderUris.remove(folder.uri.toString())
+            if (includeSelf) {
+                expandedRightFolderUris.remove(folder.uri.toString())
+            }
             return
         }
         val toRemove = expandedRightFolderUris.filter { uriString ->
             val expandedDocId = runCatching {
                 DocumentsContract.getDocumentId(Uri.parse(uriString))
-            }.getOrNull()
-            expandedDocId != null && (expandedDocId == collapseDocId || expandedDocId.startsWith("$collapseDocId/"))
+            }.getOrNull() ?: return@filter false
+
+            if (includeSelf) {
+                expandedDocId == collapseDocId || expandedDocId.startsWith("$collapseDocId/")
+            } else {
+                expandedDocId.startsWith("$collapseDocId/")
+            }
         }
         expandedRightFolderUris.removeAll(toRemove.toSet())
     }
