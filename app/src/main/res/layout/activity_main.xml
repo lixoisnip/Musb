@@ -307,8 +307,8 @@
         android:layout_height="wrap_content"
         android:background="@drawable/bg_controls_cluster"
         android:paddingHorizontal="4dp"
-        android:paddingTop="7dp"
-        android:paddingBottom="5dp"
+        android:paddingTop="9dp"
+        android:paddingBottom="6dp"
         app:layout_constraintBottom_toTopOf="@id/bottomInfoBar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
