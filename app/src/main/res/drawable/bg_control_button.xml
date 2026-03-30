@@ -8,7 +8,7 @@
                         android:angle="270"
                         android:startColor="@color/control_small_shell_disabled_top"
                         android:endColor="@color/control_small_shell_disabled_bottom" />
-                    <corners android:radius="12dp" />
+                    <corners android:radius="14dp" />
                     <stroke android:width="1dp" android:color="@color/control_small_shell_stroke_disabled" />
                 </shape>
             </item>
@@ -18,17 +18,17 @@
                         android:angle="270"
                         android:startColor="@color/control_small_disabled_top"
                         android:endColor="@color/control_small_disabled_bottom" />
-                    <corners android:radius="10dp" />
-                    <stroke android:width="0.7dp" android:color="@color/control_small_stroke_disabled" />
+                    <corners android:radius="12dp" />
+                    <stroke android:width="0.8dp" android:color="@color/control_small_stroke_disabled" />
                 </shape>
             </item>
-            <item android:left="8dp" android:top="5dp" android:right="8dp" android:bottom="40dp">
+            <item android:left="8dp" android:top="5dp" android:right="8dp" android:bottom="38dp">
                 <shape android:shape="rectangle">
                     <gradient
                         android:angle="270"
                         android:startColor="@color/control_small_highlight_disabled"
                         android:endColor="@android:color/transparent" />
-                    <corners android:radius="7dp" />
+                    <corners android:radius="9dp" />
                 </shape>
             </item>
         </layer-list>
@@ -42,7 +42,7 @@
                         android:angle="270"
                         android:startColor="@color/control_small_shell_pressed_top"
                         android:endColor="@color/control_small_shell_pressed_bottom" />
-                    <corners android:radius="12dp" />
+                    <corners android:radius="14dp" />
                     <stroke android:width="1dp" android:color="@color/control_small_shell_stroke_pressed" />
                 </shape>
             </item>
@@ -52,17 +52,17 @@
                         android:angle="270"
                         android:startColor="@color/control_small_pressed_top"
                         android:endColor="@color/control_small_pressed_bottom" />
-                    <corners android:radius="10dp" />
-                    <stroke android:width="0.7dp" android:color="@color/control_small_stroke_pressed" />
+                    <corners android:radius="12dp" />
+                    <stroke android:width="0.8dp" android:color="@color/control_small_stroke_pressed" />
                 </shape>
             </item>
-            <item android:left="8dp" android:top="5dp" android:right="8dp" android:bottom="40dp">
+            <item android:left="8dp" android:top="5dp" android:right="8dp" android:bottom="38dp">
                 <shape android:shape="rectangle">
                     <gradient
                         android:angle="270"
                         android:startColor="@color/control_small_highlight_pressed"
                         android:endColor="@android:color/transparent" />
-                    <corners android:radius="7dp" />
+                    <corners android:radius="9dp" />
                 </shape>
             </item>
         </layer-list>
@@ -76,7 +76,7 @@
                         android:angle="270"
                         android:startColor="@color/control_small_shell_active_top"
                         android:endColor="@color/control_small_shell_active_bottom" />
-                    <corners android:radius="12dp" />
+                    <corners android:radius="14dp" />
                     <stroke android:width="1dp" android:color="@color/control_small_shell_stroke_active" />
                 </shape>
             </item>
@@ -86,17 +86,17 @@
                         android:angle="270"
                         android:startColor="@color/control_small_active_top"
                         android:endColor="@color/control_small_active_bottom" />
-                    <corners android:radius="10dp" />
-                    <stroke android:width="0.7dp" android:color="@color/control_small_stroke_active" />
+                    <corners android:radius="12dp" />
+                    <stroke android:width="0.8dp" android:color="@color/control_small_stroke_active" />
                 </shape>
             </item>
-            <item android:left="8dp" android:top="5dp" android:right="8dp" android:bottom="40dp">
+            <item android:left="8dp" android:top="5dp" android:right="8dp" android:bottom="38dp">
                 <shape android:shape="rectangle">
                     <gradient
                         android:angle="270"
                         android:startColor="@color/control_small_highlight_active"
                         android:endColor="@android:color/transparent" />
-                    <corners android:radius="7dp" />
+                    <corners android:radius="9dp" />
                 </shape>
             </item>
         </layer-list>
@@ -110,7 +110,7 @@
                         android:angle="270"
                         android:startColor="@color/control_small_shell_active_top"
                         android:endColor="@color/control_small_shell_active_bottom" />
-                    <corners android:radius="12dp" />
+                    <corners android:radius="14dp" />
                     <stroke android:width="1dp" android:color="@color/control_small_shell_stroke_active" />
                 </shape>
             </item>
@@ -120,17 +120,17 @@
                         android:angle="270"
                         android:startColor="@color/control_small_active_top"
                         android:endColor="@color/control_small_active_bottom" />
-                    <corners android:radius="10dp" />
-                    <stroke android:width="0.7dp" android:color="@color/control_small_stroke_active" />
+                    <corners android:radius="12dp" />
+                    <stroke android:width="0.8dp" android:color="@color/control_small_stroke_active" />
                 </shape>
             </item>
-            <item android:left="8dp" android:top="5dp" android:right="8dp" android:bottom="40dp">
+            <item android:left="8dp" android:top="5dp" android:right="8dp" android:bottom="38dp">
                 <shape android:shape="rectangle">
                     <gradient
                         android:angle="270"
                         android:startColor="@color/control_small_highlight_active"
                         android:endColor="@android:color/transparent" />
-                    <corners android:radius="7dp" />
+                    <corners android:radius="9dp" />
                 </shape>
             </item>
         </layer-list>
@@ -144,7 +144,7 @@
                         android:angle="270"
                         android:startColor="@color/control_small_shell_top"
                         android:endColor="@color/control_small_shell_bottom" />
-                    <corners android:radius="12dp" />
+                    <corners android:radius="14dp" />
                     <stroke android:width="1dp" android:color="@color/control_small_shell_stroke" />
                 </shape>
             </item>
@@ -154,17 +154,17 @@
                         android:angle="270"
                         android:startColor="@color/control_small_top"
                         android:endColor="@color/control_small_bottom" />
-                    <corners android:radius="10dp" />
-                    <stroke android:width="0.7dp" android:color="@color/control_small_stroke" />
+                    <corners android:radius="12dp" />
+                    <stroke android:width="0.8dp" android:color="@color/control_small_stroke" />
                 </shape>
             </item>
-            <item android:left="8dp" android:top="5dp" android:right="8dp" android:bottom="40dp">
+            <item android:left="8dp" android:top="5dp" android:right="8dp" android:bottom="38dp">
                 <shape android:shape="rectangle">
                     <gradient
                         android:angle="270"
                         android:startColor="@color/control_small_highlight"
                         android:endColor="@android:color/transparent" />
-                    <corners android:radius="7dp" />
+                    <corners android:radius="9dp" />
                 </shape>
             </item>
         </layer-list>
