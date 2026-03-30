@@ -302,7 +302,7 @@
                 android:layout_marginTop="4dp"
                 android:background="@android:color/transparent"
                 android:gravity="center"
-                android:text="@string/folder_files_footer"
+                android:text="@string/folder_explorer_footer"
                 android:textColor="@color/text_secondary"
                 android:textSize="10sp"
                 android:textStyle="bold" />
@@ -316,7 +316,6 @@
         android:background="@drawable/bg_controls_cluster"
         android:clipChildren="false"
         android:clipToPadding="false"
-        android:elevation="24dp"
         android:paddingHorizontal="0dp"
         android:paddingTop="14dp"
         android:paddingBottom="0dp"

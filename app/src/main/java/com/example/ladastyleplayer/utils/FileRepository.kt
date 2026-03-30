@@ -32,8 +32,7 @@ class FileRepository {
     suspend fun canEnumerateFolderContext(folder: DocumentFile): Boolean = withContext(Dispatchers.IO) {
         runCatching {
             if (!folder.exists() || !folder.isDirectory) return@runCatching false
-            folder.listFiles()
-            true
+            folder.listFiles().let { true }
         }.getOrDefault(false)
     }
 
@@ -41,9 +40,14 @@ class FileRepository {
      * Returns only direct child folders sorted stably.
      */
     suspend fun listChildFoldersOnly(folder: DocumentFile): List<DocumentFile> = withContext(Dispatchers.IO) {
-        folder.listFiles()
-            .filter { it.isDirectory }
-            .let(::sortFoldersStable)
+        runCatching {
+            if (!folder.exists() || !folder.isDirectory) return@runCatching emptyList()
+            folder.listFiles()
+                .asSequence()
+                .filter { child -> runCatching { child.exists() && child.isDirectory }.getOrDefault(false) }
+                .toList()
+                .let(::sortFoldersStable)
+        }.getOrDefault(emptyList())
     }
 
     /**
@@ -72,7 +76,11 @@ class FileRepository {
     }
 
     private fun collectSupportedAudioRecursivelyInternal(folder: DocumentFile, acc: MutableList<DocumentFile>) {
-        folder.listFiles().sortedWith(entryComparator).forEach { child ->
+        val children = runCatching { folder.listFiles().sortedWith(entryComparator) }.getOrElse {
+            Log.d(TAG, "collectSupportedAudioRecursivelyInternal cannot list folder=${folder.uri}: ${it.message}")
+            emptyList()
+        }
+        children.forEach { child ->
             when {
                 child.isFile && isSupportedAudio(child.name) -> acc.add(child)
                 child.isDirectory -> collectSupportedAudioRecursivelyInternal(child, acc)
