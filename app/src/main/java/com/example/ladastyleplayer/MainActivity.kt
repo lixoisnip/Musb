@@ -369,20 +369,15 @@ class MainActivity : AppCompatActivity() {
             }
 
             navigationTreeUri = uri
-            prefs.edit { putString(KEY_LAST_TREE_URI, uri.toString()) }
             renderRootOverview(root)
         }
     }
 
     private fun loadPersistedTreeContext() {
-        val persisted = prefs.getString(KEY_LAST_TREE_URI, null) ?: return
-        val uri = Uri.parse(persisted)
-        val root = DocumentFile.fromTreeUri(this, uri)
-        if (root != null && root.exists() && root.isDirectory) {
-            navigationTreeUri = uri
-        } else {
-            prefs.edit { remove(KEY_LAST_TREE_URI) }
-        }
+        // Disabled intentionally for now.
+        // We do not restore the last saved folder into UI on startup,
+        // because navigation must be driven only by the right panel selection.
+        navigationTreeUri = null
     }
 
     private fun playSelectedAudio(uri: Uri) {
@@ -471,15 +466,14 @@ class MainActivity : AppCompatActivity() {
         return folder
     }
 
-    private fun openBranch(folder: DocumentFile, expandSelectedFolder: Boolean = true) {
+    private fun openBranch(folder: DocumentFile) {
         Log.d(TAG, "folder navigation change -> selectedUri=${folder.uri}")
-        mainScope.launch { renderFolderContext(folder, currentTrackUri, expandSelectedFolder) }
+        mainScope.launch { renderFolderContext(folder, currentTrackUri) }
     }
 
     private suspend fun renderFolderContext(
         selectedFolder: DocumentFile,
-        selectedTrackUri: String?,
-        expandSelectedFolder: Boolean = true
+        selectedTrackUri: String?
     ) {
         if (!repository.isKnownFolderReference(selectedFolder)) {
             showUsbError()
@@ -494,9 +488,7 @@ class MainActivity : AppCompatActivity() {
 
         val rootFolder = resolveActiveNavigationRoot(selectedFolder)
         expandedRightFolderUris += rootFolder.uri.toString()
-        if (expandSelectedFolder) {
-            expandedRightFolderUris += selectedFolderUri
-        }
+        expandedRightFolderUris += selectedFolderUri
         val breadcrumb = buildBreadcrumb(selectedFolder, rootFolder.uri)
         currentBreadcrumb = breadcrumb
         pathText.text = breadcrumb
@@ -558,7 +550,7 @@ class MainActivity : AppCompatActivity() {
             openBranch(parent)
         } else {
             collapseRightBranch(folder, includeSelf = false)
-            openBranch(folder, expandSelectedFolder = true)
+            openBranch(folder)
         }
     }
 
@@ -748,32 +740,19 @@ class MainActivity : AppCompatActivity() {
         val canEnumerate = canEnumerateFolderContext(folder)
         Log.d(TAG, "resolved containing folder uri=${folder.uri} enumerable=$canEnumerate")
         navigationTreeUri = findBestNavigationTreeUriForFolder(folder)
-        navigationTreeUri?.let { prefs.edit { putString(KEY_LAST_TREE_URI, it.toString()) } }
         Log.d(TAG, "alignExplorerToFolder used=true folderUri=${folder.uri} navigationTreeUri=$navigationTreeUri")
         renderFolderContext(folder, currentTrackUri)
     }
 
     private fun syncInitialFolderContext() {
-        val rootUri = navigationTreeUri
-        Log.d(TAG, "syncInitialFolderContext selectedRootUri=$rootUri selectedRootIsNull=${rootUri == null}")
-        if (rootUri == null) {
-            usbStatusText.text = getString(R.string.status_no_usb)
-            pathText.text = getString(R.string.status_no_usb)
-            topSourceText.text = getString(R.string.top_source_placeholder)
-            findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.pick_root_folder_hint)
-            findViewById<TextView>(R.id.leftEmptyText).visibility = if (leftAdapter.itemCount == 0) View.VISIBLE else View.GONE
-            findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.pick_root_folder_hint)
-            findViewById<TextView>(R.id.rightEmptyText).visibility = if (rightAdapter.itemCount == 0) View.VISIBLE else View.GONE
-            Log.d(TAG, "syncInitialFolderContext retained panel state leftPanelItemCount=${leftAdapter.itemCount} rightPanelTrackCount=${rightAdapter.itemCount}")
-            return
-        }
-        val root = DocumentFile.fromTreeUri(this, rootUri)
-        if (root == null || !root.exists() || !root.isDirectory) {
-            showUsbError()
-            return
-        }
-        prefs.edit { putString(KEY_LAST_TREE_URI, rootUri.toString()) }
-        renderRootOverview(root)
+        usbStatusText.text = getString(R.string.status_no_usb)
+        pathText.text = getString(R.string.status_no_usb)
+        topSourceText.text = getString(R.string.top_source_placeholder)
+        findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.select_folder_to_show_songs)
+        findViewById<TextView>(R.id.leftEmptyText).visibility = if (leftAdapter.itemCount == 0) View.VISIBLE else View.GONE
+        findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.pick_root_folder_hint)
+        findViewById<TextView>(R.id.rightEmptyText).visibility = if (rightAdapter.itemCount == 0) View.VISIBLE else View.GONE
+        Log.d(TAG, "syncInitialFolderContext startup restore disabled")
     }
 
     private fun navigateToParentFolder() {
@@ -946,14 +925,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun scrollPlaylistToCurrent() {
-        val target = rightAdapter.findPositionByUri(currentTrackUri)
+        val target = leftAdapter.findPositionByUri(currentTrackUri)
         if (target != RecyclerView.NO_POSITION) {
-            rightRecycler.smoothScrollToPosition(target)
+            leftRecycler.smoothScrollToPosition(target)
         }
     }
 
     private fun showTrackInfoDialog() {
-        val trackFile = rightAdapter.getItemByUri(currentTrackUri)?.name
+        val trackFile = leftAdapter.getItemByUri(currentTrackUri)?.name
             ?: currentTrackUri?.substringAfterLast('/')
             ?: getString(R.string.unknown_file)
         val body = getString(

@@ -112,7 +112,7 @@ class FileEntryAdapter(
         holder.name.isActivated = isActive
         holder.icon.isActivated = isActive
         holder.duration.isActivated = isActive
-        holder.itemView.setPadding(resolveStartPadding(documentFile, holder.itemView), holder.itemView.paddingTop, holder.itemView.paddingRight, holder.itemView.paddingBottom)
+        holder.itemView.setPadding(resolveStartPadding(item.depth, holder.itemView), holder.itemView.paddingTop, holder.itemView.paddingRight, holder.itemView.paddingBottom)
 
         if (documentFile.isDirectory) {
             holder.icon.text = "📁"
@@ -141,9 +141,9 @@ class FileEntryAdapter(
         val playFolder: Button = view.findViewById(R.id.playFolderButton)
     }
 
-    private fun resolveStartPadding(documentFile: DocumentFile, view: View): Int {
+    private fun resolveStartPadding(depth: Int, view: View): Int {
         if (!hierarchicalIndent) return dpPadding(BASE_PADDING_DP, view)
-        val nestedLevel = items.firstOrNull { it.documentFile?.uri == documentFile.uri }?.depth?.coerceAtLeast(0) ?: 0
+        val nestedLevel = depth.coerceAtLeast(0)
         return dpPadding(BASE_PADDING_DP + (nestedLevel * INDENT_STEP_DP), view)
     }
 
