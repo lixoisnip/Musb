@@ -307,9 +307,6 @@ class MainActivity : AppCompatActivity() {
         playPauseButton.setOnClickListener {
             startPlayerAction(PlayerService.ACTION_PLAY_PAUSE)
         }
-        findViewById<ImageButton>(R.id.nextButton).setOnClickListener {
-            startPlayerAction(PlayerService.ACTION_NEXT)
-        }
         findViewById<ImageButton>(R.id.prevButton).setOnClickListener {
             startPlayerAction(PlayerService.ACTION_PREV)
         }

@@ -3,45 +3,45 @@
     android:id="@+id/entryRoot"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="5dp"
+    android:layout_marginBottom="0dp"
     android:background="@drawable/bg_list_item"
     android:gravity="center_vertical"
-    android:minHeight="56dp"
+    android:minHeight="92dp"
     android:orientation="horizontal"
-    android:paddingStart="12dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="11dp"
-    android:paddingBottom="8dp">
+    android:paddingStart="34dp"
+    android:paddingTop="0dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="0dp">
 
     <TextView
         android:id="@+id/entryIcon"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
         android:gravity="center"
         android:text="📁"
         android:textColor="@color/list_item_meta_text"
-        android:textSize="11sp" />
+        android:textSize="18sp" />
 
     <TextView
         android:id="@+id/entryName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="11dp"
+        android:layout_marginStart="20dp"
         android:layout_weight="1"
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/list_item_text"
-        android:textSize="14.5sp"
+        android:textSize="31sp"
         android:textStyle="bold" />
 
     <TextView
         android:id="@+id/entryDuration"
-        android:layout_width="50dp"
+        android:layout_width="82dp"
         android:layout_height="wrap_content"
         android:gravity="end"
         android:text="--:--"
         android:textColor="@color/list_item_meta_text"
-        android:textSize="10sp"
+        android:textSize="24sp"
         android:visibility="gone" />
 
     <Button

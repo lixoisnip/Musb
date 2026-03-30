@@ -151,7 +151,7 @@ class FileEntryAdapter(
 
     companion object {
         private const val TAG = "FileEntryAdapter"
-        private const val BASE_PADDING_DP = 12
-        private const val INDENT_STEP_DP = 8
+        private const val BASE_PADDING_DP = 34
+        private const val INDENT_STEP_DP = 54
     }
 }
