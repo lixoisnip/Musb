@@ -4,15 +4,15 @@
         <shape android:shape="rectangle">
             <gradient
                 android:angle="270"
-                android:startColor="#131A27"
-                android:centerColor="#0F1520"
-                android:endColor="#090E17" />
+                android:startColor="#1C1813"
+                android:centerColor="#16130F"
+                android:endColor="#100D0A" />
         </shape>
     </item>
 
     <item android:top="0dp">
         <shape android:shape="rectangle">
-            <stroke android:width="1dp" android:color="#2B384B" />
+            <stroke android:width="1dp" android:color="#3E352C" />
         </shape>
     </item>
 </layer-list>
