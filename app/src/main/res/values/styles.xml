@@ -8,7 +8,7 @@
 
     <style name="ControlImageButtonBase">
         <item name="android:tint">@color/control_icon_tint</item>
-        <item name="android:scaleType">centerInside</item>
+        <item name="android:scaleType">fitCenter</item>
         <item name="android:padding">4dp</item>
     </style>
 
@@ -17,15 +17,15 @@
         <item name="android:layout_height">84dp</item>
         <item name="android:layout_marginHorizontal">10dp</item>
         <item name="android:background">@drawable/bg_control_button</item>
-        <item name="android:padding">22dp</item>
+        <item name="android:padding">4dp</item>
     </style>
 
     <style name="ControlButtonCenter" parent="ControlImageButtonBase">
-        <item name="android:layout_width">132dp</item>
-        <item name="android:layout_height">132dp</item>
-        <item name="android:layout_marginHorizontal">16dp</item>
-        <item name="android:layout_marginTop">-18dp</item>
+        <item name="android:layout_width">184dp</item>
+        <item name="android:layout_height">184dp</item>
+        <item name="android:layout_marginHorizontal">10dp</item>
+        <item name="android:layout_marginTop">-12dp</item>
         <item name="android:background">@drawable/bg_control_button_center</item>
-        <item name="android:padding">34dp</item>
+        <item name="android:padding">4dp</item>
     </style>
 </resources>

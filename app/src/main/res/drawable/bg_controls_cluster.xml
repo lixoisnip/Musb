@@ -4,39 +4,15 @@
         <shape android:shape="rectangle">
             <gradient
                 android:angle="270"
-                android:startColor="#121926"
-                android:centerColor="#0C121D"
-                android:endColor="#080C14" />
+                android:startColor="#1A1A1A"
+                android:centerColor="#111111"
+                android:endColor="#090909" />
         </shape>
     </item>
 
     <item android:top="1dp">
         <shape android:shape="rectangle">
-            <stroke android:width="1dp" android:color="#273447" />
-        </shape>
-    </item>
-
-    <item
-        android:gravity="top|center_horizontal"
-        android:width="278dp"
-        android:height="44dp"
-        android:top="0dp">
-        <shape android:shape="oval">
-            <gradient
-                android:angle="270"
-                android:startColor="#2A3648"
-                android:endColor="#101927" />
-            <stroke android:width="1dp" android:color="#37465A" />
-        </shape>
-    </item>
-
-    <item
-        android:gravity="top|center_horizontal"
-        android:width="246dp"
-        android:height="30dp"
-        android:top="4dp">
-        <shape android:shape="oval">
-            <solid android:color="#0B111B" />
+            <stroke android:width="1dp" android:color="#323232" />
         </shape>
     </item>
 </layer-list>

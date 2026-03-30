@@ -18,7 +18,8 @@ class FileEntryAdapter(
     private val onFileClick: (DocumentFile) -> Unit,
     private val onPlayFolder: (DocumentFile) -> Unit,
     private val onCustomClick: ((String) -> Unit)? = null,
-    private val onUpClick: (() -> Unit)? = null
+    private val onUpClick: (() -> Unit)? = null,
+    private val hierarchicalIndent: Boolean = true
 ) : RecyclerView.Adapter<FileEntryAdapter.EntryViewHolder>() {
 
     data class EntryItem(
@@ -77,7 +78,7 @@ class FileEntryAdapter(
             holder.name.isActivated = false
             holder.icon.isActivated = false
             holder.duration.isActivated = false
-            holder.itemView.setPadding(dp(holder.itemView, BASE_PADDING_DP), holder.itemView.paddingTop, holder.itemView.paddingRight, holder.itemView.paddingBottom)
+            holder.itemView.setPadding(dpPadding(BASE_PADDING_DP, holder.itemView), holder.itemView.paddingTop, holder.itemView.paddingRight, holder.itemView.paddingBottom)
             holder.itemView.setOnClickListener { onUpClick?.invoke() }
             return
         }
@@ -94,7 +95,7 @@ class FileEntryAdapter(
             holder.icon.isActivated = isActive
             holder.duration.isActivated = false
             holder.itemView.alpha = if (isEnabled) 1f else 0.55f
-            holder.itemView.setPadding(dp(holder.itemView, BASE_PADDING_DP), holder.itemView.paddingTop, holder.itemView.paddingRight, holder.itemView.paddingBottom)
+            holder.itemView.setPadding(dpPadding(BASE_PADDING_DP, holder.itemView), holder.itemView.paddingTop, holder.itemView.paddingRight, holder.itemView.paddingBottom)
             holder.itemView.setOnClickListener {
                 if (isEnabled) onCustomClick?.invoke(item.customId)
             }
@@ -110,7 +111,7 @@ class FileEntryAdapter(
         holder.name.isActivated = isActive
         holder.icon.isActivated = isActive
         holder.duration.isActivated = isActive
-        holder.itemView.setPadding(resolveStartPadding(documentFile), holder.itemView.paddingTop, holder.itemView.paddingRight, holder.itemView.paddingBottom)
+        holder.itemView.setPadding(resolveStartPadding(documentFile, holder.itemView), holder.itemView.paddingTop, holder.itemView.paddingRight, holder.itemView.paddingBottom)
 
         if (documentFile.isDirectory) {
             holder.icon.text = "📁"
@@ -139,19 +140,21 @@ class FileEntryAdapter(
         val playFolder: Button = view.findViewById(R.id.playFolderButton)
     }
 
-    private fun resolveStartPadding(documentFile: DocumentFile): Int {
+    private fun resolveStartPadding(documentFile: DocumentFile, view: View): Int {
+        if (!hierarchicalIndent) return dpPadding(BASE_PADDING_DP, view)
         val depth = documentFile.uri.path?.count { it == '/' } ?: 0
         val nestedLevel = (depth - 4).coerceIn(0, 3)
-        return BASE_PADDING_DP + (nestedLevel * INDENT_STEP_DP)
+        return dpPadding(BASE_PADDING_DP + (nestedLevel * INDENT_STEP_DP), view)
     }
 
-    private fun dp(view: View, value: Int): Int {
-        return (value * view.resources.displayMetrics.density).toInt()
+    private fun dpPadding(value: Int, view: View? = null): Int {
+        val baseView = view ?: return value
+        return (value * baseView.resources.displayMetrics.density).toInt()
     }
 
     companion object {
         private const val TAG = "FileEntryAdapter"
-        private const val BASE_PADDING_DP = 34
-        private const val INDENT_STEP_DP = 54
+        private const val BASE_PADDING_DP = 8
+        private const val INDENT_STEP_DP = 16
     }
 }
