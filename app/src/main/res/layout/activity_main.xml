@@ -363,6 +363,7 @@
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/playPauseButton"
                 style="@style/ControlButtonCenter"
+                android:translationZ="32dp"
                 android:contentDescription="@string/play_pause"
                 android:src="@drawable/ic_transport_play"
                 android:tint="@color/control_icon_tint_selector" />
