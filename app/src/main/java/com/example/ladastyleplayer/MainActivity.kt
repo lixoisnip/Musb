@@ -655,21 +655,25 @@ class MainActivity : AppCompatActivity() {
 
         val leftItems = mutableListOf<FileEntryAdapter.EntryItem>()
         if (usableFallbackFolder != null) {
-            leftItems += FileEntryAdapter.EntryItem(
-                customId = "standalone-folder:${usableFallbackFolder.uri}",
-                customName = usableFallbackFolder.name ?: getString(R.string.no_track),
-                customIcon = "📁",
-                isCustomFolder = true,
-                isEnabled = false
-            )
+            val parent = resolveParentFromDocumentFile(usableFallbackFolder)
+            if (parent != null) {
+                leftItems += FileEntryAdapter.EntryItem(isUpItem = true)
+            }
+            leftItems += FileEntryAdapter.EntryItem(documentFile = usableFallbackFolder)
+            val childFolders = runCatching { repository.listChildFoldersOnly(usableFallbackFolder) }
+                .getOrElse { emptyList() }
+            leftItems += childFolders.map { FileEntryAdapter.EntryItem(documentFile = it) }
         }
         leftAdapter.submitList(leftItems)
-        selectLeftItem(leftItems.firstOrNull()?.customId)
+        selectLeftItem(usableFallbackFolder?.uri?.toString() ?: leftItems.firstOrNull()?.customId)
 
-        val rightItems = if (selectedFile != null) {
-            listOf(FileEntryAdapter.EntryItem(documentFile = selectedFile))
-        } else {
-            emptyList()
+        val fallbackTracks = usableFallbackFolder?.let { folder ->
+            runCatching { repository.collectSupportedAudioRecursively(folder) }.getOrElse { emptyList() }
+        }.orEmpty()
+        val rightItems = when {
+            fallbackTracks.isNotEmpty() -> fallbackTracks.map { FileEntryAdapter.EntryItem(documentFile = it) }
+            selectedFile != null -> listOf(FileEntryAdapter.EntryItem(documentFile = selectedFile))
+            else -> emptyList()
         }
         rightAdapter.submitList(rightItems)
         rightAdapter.setHighlightedUri(currentTrackUri)
@@ -748,6 +752,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resolveParentWithinRoot(folder: DocumentFile, root: DocumentFile): DocumentFile? {
+        if (folder.uri == root.uri) {
+            val directParent = resolveParentFromDocumentFile(folder)
+            if (directParent != null) return directParent
+        }
         val currentDocId = runCatching { DocumentsContract.getDocumentId(folder.uri) }.getOrNull() ?: return null
         val rootDocId = runCatching { DocumentsContract.getTreeDocumentId(root.uri) }.getOrNull()
             ?: runCatching { DocumentsContract.getDocumentId(root.uri) }.getOrNull()
@@ -768,6 +776,11 @@ class MainActivity : AppCompatActivity() {
         if (treeParent != null && treeParent.exists() && treeParent.isDirectory) {
             return treeParent
         }
+        return resolveParentFromDocumentId(folder, currentDocId)
+    }
+
+    private fun resolveParentFromDocumentFile(folder: DocumentFile): DocumentFile? {
+        val currentDocId = runCatching { DocumentsContract.getDocumentId(folder.uri) }.getOrNull() ?: return null
         return resolveParentFromDocumentId(folder, currentDocId)
     }
 
