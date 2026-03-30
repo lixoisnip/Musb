@@ -374,6 +374,8 @@ class MainActivity : AppCompatActivity() {
         val root = DocumentFile.fromTreeUri(this, uri)
         if (root != null && root.exists() && root.isDirectory) {
             navigationTreeUri = uri
+        } else {
+            prefs.edit { remove(KEY_LAST_TREE_URI) }
         }
     }
 
@@ -502,7 +504,6 @@ class MainActivity : AppCompatActivity() {
         val wasHighlighted = leftAdapter.findPositionByUri(selectedTrackUri) != RecyclerView.NO_POSITION
 
         renderRightFolderTree(rootFolder)
-        selectLeftItem(selectedFolderUri)
         Log.d(TAG, "renderFolderContext used=true selectedFolderUri=${selectedFolder.uri}")
         Log.d(TAG, "left-panel track count=${tracks.size} selectedFolderUri=${selectedFolder.uri} highlighted=$wasHighlighted")
         findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.no_supported_audio)
@@ -530,22 +531,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun onRightFolderTapped(folder: DocumentFile) {
         val folderUri = folder.uri.toString()
-        if (selectedRightFolder?.uri == folder.uri && expandedRightFolderUris.contains(folderUri)) {
-            collapseRightBranch(folderUri)
-            selectedRightFolder = null
-            selectedLeftFolder = null
-            leftAdapter.submitList(emptyList())
-            leftAdapter.setHighlightedUri(null)
-            findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.empty_right_folder_tracks_hint)
-            findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
-            mainScope.launch {
-                resolveActiveNavigationRoot(folder).also { root ->
-                    renderRightFolderTree(root)
-                    rightAdapter.setSelectedKey(null)
-                }
-            }
-            return
-        }
         expandedRightFolderUris += folderUri
         openBranch(folder)
     }
@@ -566,6 +551,7 @@ class MainActivity : AppCompatActivity() {
             topSourceText.text = getString(R.string.showing_music_in, currentBreadcrumb)
             usbStatusText.text = getString(R.string.status_usb_connected)
             leftAdapter.submitList(emptyList())
+            leftAdapter.setSelectedKey(null)
             leftAdapter.setHighlightedUri(currentTrackUri)
             findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.empty_right_folder_tracks_hint)
             findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
@@ -664,83 +650,37 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun renderStandaloneFileFallback(fileUri: Uri, fallbackFolder: DocumentFile?) {
         val treeReconstructedFolder = resolveContainingFolderFromPickedFile(fileUri)
-        val usableFallbackFolder = when {
-            treeReconstructedFolder != null -> {
-                Log.d(TAG, "renderStandaloneFileFallback resolvedFallbackFolder source=tree-based uri=${treeReconstructedFolder.uri}")
-                treeReconstructedFolder
-            }
-            fallbackFolder != null -> {
-                val enumerable = canEnumerateFolderContext(fallbackFolder)
-                Log.d(
-                    TAG,
-                    "renderStandaloneFileFallback resolvedFallbackFolder source=single-document uri=${fallbackFolder.uri} enumerable=$enumerable"
-                )
-                fallbackFolder
-            }
-            else -> null
+        if (treeReconstructedFolder != null && treeReconstructedFolder.exists() && treeReconstructedFolder.isDirectory) {
+            alignExplorerToFolder(treeReconstructedFolder)
+            return
         }
 
-        if (usableFallbackFolder != null && usableFallbackFolder.exists() && usableFallbackFolder.isDirectory) {
+        if (fallbackFolder != null && fallbackFolder.exists() && fallbackFolder.isDirectory) {
             val promoted = runCatching {
-                alignExplorerToFolder(usableFallbackFolder)
+                alignExplorerToFolder(fallbackFolder)
                 true
             }.getOrElse {
                 Log.d(
                     TAG,
-                    "renderStandaloneFileFallback promotedToFolderContext failed folderUri=${usableFallbackFolder.uri}: ${it.message}"
+                    "renderStandaloneFileFallback folder promotion failed folderUri=${fallbackFolder.uri}: ${it.message}"
                 )
                 false
             }
-            if (promoted) {
-                Log.d(
-                    TAG,
-                    "renderStandaloneFileFallback promotedToFolderContext=true alignExplorerToFolder=true folderUri=${usableFallbackFolder.uri}"
-                )
-                return
-            }
+            if (promoted) return
         }
 
         val selectedFile = DocumentFile.fromSingleUri(this, fileUri)
             ?.takeIf { it.exists() && !it.isDirectory }
-        val fallbackFolderName = usableFallbackFolder?.name ?: selectedFile?.name ?: getString(R.string.no_track)
-
-        val fallbackTracks = usableFallbackFolder?.let { folder ->
-            runCatching { repository.collectSupportedAudioRecursively(folder) }.getOrElse { emptyList() }
-        }.orEmpty()
-        val leftItems = when {
-            fallbackTracks.isNotEmpty() -> fallbackTracks.map { FileEntryAdapter.EntryItem(documentFile = it) }
-            selectedFile != null -> listOf(FileEntryAdapter.EntryItem(documentFile = selectedFile))
-            else -> emptyList()
-        }
+        val leftItems = selectedFile?.let { listOf(FileEntryAdapter.EntryItem(documentFile = it)) } ?: emptyList()
         leftAdapter.submitList(leftItems)
+        leftAdapter.setSelectedKey(null)
         leftAdapter.setHighlightedUri(currentTrackUri)
-
-        val rightItems = mutableListOf<FileEntryAdapter.EntryItem>()
-        if (usableFallbackFolder != null) {
-            rightItems += FileEntryAdapter.EntryItem(documentFile = usableFallbackFolder)
-            val childFolders = runCatching { repository.listChildFoldersOnly(usableFallbackFolder) }
-                .getOrElse { emptyList() }
-            rightItems += childFolders.map { FileEntryAdapter.EntryItem(documentFile = it) }
-        }
-        rightAdapter.submitList(rightItems)
-        rightAdapter.setSelectedKey(usableFallbackFolder?.uri?.toString())
-
-        selectedLeftFolder = usableFallbackFolder
-        selectedRightFolder = usableFallbackFolder
-        currentRightTrackScope = usableFallbackFolder
-        currentBreadcrumb = fallbackFolderName
-        pathText.text = fallbackFolderName
-        topSourceText.text = getString(R.string.showing_music_in, fallbackFolderName)
-        usbStatusText.text = getString(R.string.status_usb_connected)
-
         findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.empty_right_folder_tracks_hint)
         findViewById<TextView>(R.id.leftEmptyText).visibility = if (leftItems.isEmpty()) View.VISIBLE else View.GONE
-        findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.empty_left_add_folder)
-        findViewById<TextView>(R.id.rightEmptyText).visibility = if (rightItems.isEmpty()) View.VISIBLE else View.GONE
 
         Log.d(
             TAG,
-            "renderStandaloneFileFallback used=true minimalFallback=true folderUri=${usableFallbackFolder?.uri} leftPanelItemCount=${leftItems.size} rightPanelTrackCount=${rightItems.size}"
+            "renderStandaloneFileFallback used=true playbackOnly=true rightExplorerPreserved=true fileUri=$fileUri"
         )
     }
 
@@ -788,6 +728,7 @@ class MainActivity : AppCompatActivity() {
             showUsbError()
             return
         }
+        prefs.edit { putString(KEY_LAST_TREE_URI, rootUri.toString()) }
         renderRootOverview(root)
     }
 
