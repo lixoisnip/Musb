@@ -495,10 +495,9 @@ class MainActivity : AppCompatActivity() {
         usbStatusText.text = getString(R.string.status_usb_connected)
 
         val parent = resolveParentWithinRoot(selectedFolder, rootFolder)
-        val displayFolder = parent ?: selectedFolder
-        val childFolders = runCatching { repository.listChildFoldersOnly(displayFolder) }
+        val childFolders = runCatching { repository.listChildFoldersOnly(selectedFolder) }
             .getOrElse {
-                Log.d(TAG, "renderFolderContext listChildFoldersOnly failed folder=${displayFolder.uri}: ${it.message}")
+                Log.d(TAG, "renderFolderContext listChildFoldersOnly failed folder=${selectedFolder.uri}: ${it.message}")
                 emptyList()
             }
 
@@ -520,6 +519,7 @@ class MainActivity : AppCompatActivity() {
         rightAdapter.submitList(tracks.map { FileEntryAdapter.EntryItem(documentFile = it) })
         rightAdapter.setHighlightedUri(selectedTrackUri)
         val wasHighlighted = rightAdapter.findPositionByUri(selectedTrackUri) != RecyclerView.NO_POSITION
+        Log.d(TAG, "renderFolderContext used=true selectedFolderUri=${selectedFolder.uri}")
         Log.d(TAG, "right-panel track count=${tracks.size} selectedLeftFolderUri=${selectedFolder.uri} highlighted=$wasHighlighted")
         findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.no_supported_audio)
         findViewById<TextView>(R.id.rightEmptyText).visibility = if (tracks.isEmpty()) View.VISIBLE else View.GONE
@@ -599,6 +599,21 @@ class MainActivity : AppCompatActivity() {
 
 
     private suspend fun renderStandaloneFileFallback(fileUri: Uri, fallbackFolder: DocumentFile?) {
+        if (fallbackFolder != null && fallbackFolder.exists() && fallbackFolder.isDirectory) {
+            val canListChildren = runCatching {
+                repository.listChildren(fallbackFolder)
+                true
+            }.getOrDefault(false)
+            if (canListChildren) {
+                Log.d(
+                    TAG,
+                    "renderStandaloneFileFallback promotedToFolderContext=true folderUri=${fallbackFolder.uri}"
+                )
+                alignExplorerToFolder(fallbackFolder)
+                return
+            }
+        }
+
         val selectedFile = DocumentFile.fromSingleUri(this, fileUri)
             ?.takeIf { it.exists() && !it.isDirectory }
         val fallbackFolderName = fallbackFolder?.name ?: selectedFile?.name ?: getString(R.string.no_track)
@@ -662,6 +677,7 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "resolved containing folder uri=${folder.uri}")
         navigationTreeUri = findBestNavigationTreeUriForFolder(folder)
         navigationTreeUri?.let { prefs.edit { putString(KEY_LAST_TREE_URI, it.toString()) } }
+        Log.d(TAG, "alignExplorerToFolder using renderFolderContext folderUri=${folder.uri}")
         renderFolderContext(folder, currentTrackUri)
     }
 
@@ -696,7 +712,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resolveParentWithinRoot(folder: DocumentFile, root: DocumentFile): DocumentFile? {
-        val rootDocId = runCatching { DocumentsContract.getTreeDocumentId(root.uri) }.getOrNull() ?: return null
+        val rootDocId = runCatching { DocumentsContract.getTreeDocumentId(root.uri) }.getOrNull()
+            ?: runCatching { DocumentsContract.getDocumentId(root.uri) }.getOrNull()
+            ?: return null
         val currentDocId = runCatching { DocumentsContract.getDocumentId(folder.uri) }.getOrNull() ?: return null
         if (currentDocId == rootDocId) return null
         val separatorIndex = currentDocId.lastIndexOf('/')
