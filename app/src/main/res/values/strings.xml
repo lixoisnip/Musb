@@ -65,4 +65,6 @@
     <string name="track_info_body">Title: %1$s\nArtist: %2$s\nAlbum: %3$s\nFile: %4$s\nDuration: %5$s</string>
     <string name="unknown_file">Unknown file</string>
     <string name="seek_forward_hint">Jumped forward 10s</string>
+    <string name="empty_left_add_folder">Add/open a folder</string>
+    <string name="empty_right_folder_tracks_hint">Songs from selected folder will appear here</string>
 </resources>

@@ -78,8 +78,7 @@ class MainActivity : AppCompatActivity() {
     private var isShuffleOn = false
     private var repeatMode = Player.REPEAT_MODE_OFF
     private var isMuted = false
-    private var sourceRoots: List<Uri> = emptyList()
-    private var selectedRootUri: Uri? = null
+    private var navigationTreeUri: Uri? = null
     private var selectedLeftKey: String? = null
     private var selectedLeftFolder: DocumentFile? = null
     private var currentRightTrackScope: DocumentFile? = null
@@ -243,7 +242,7 @@ class MainActivity : AppCompatActivity() {
         setupButtons()
         applyControlStates()
 
-        loadPersistedSources()
+        loadPersistedTreeContext()
         syncInitialFolderContext()
     }
 
@@ -338,12 +337,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun registerSourceRoot(uri: Uri) {
-        saveSourceUri(uri)
-        loadPersistedSources(selectedUri = uri.toString())
-        syncInitialFolderContext()
-    }
-
     private fun openTree(uri: Uri) {
         Log.d(TAG, "openTree(uri=$uri)")
         if (!persistUriPermission(uri)) {
@@ -373,21 +366,19 @@ class MainActivity : AppCompatActivity() {
                 return@launch
             }
 
-            registerSourceRoot(uri)
+            navigationTreeUri = uri
+            prefs.edit { putString(KEY_LAST_TREE_URI, uri.toString()) }
             renderFolderContext(root, currentTrackUri)
         }
     }
 
-    private fun loadPersistedSources(selectedUri: String? = null) {
-        val storedUris = prefs.getStringSet(KEY_SOURCE_URIS, emptySet())?.toList().orEmpty()
-        sourceRoots = storedUris.map(::Uri.parse)
-            .filter { uri ->
-                val root = DocumentFile.fromTreeUri(this, uri)
-                root != null && root.exists() && root.isDirectory
-            }
-        val selected = selectedUri ?: prefs.getString(KEY_SELECTED_SOURCE_URI, null)
-        selectedRootUri = sourceRoots.firstOrNull { it.toString() == selected } ?: sourceRoots.firstOrNull()
-        selectedRootUri?.let { prefs.edit { putString(KEY_SELECTED_SOURCE_URI, it.toString()) } }
+    private fun loadPersistedTreeContext() {
+        val persisted = prefs.getString(KEY_LAST_TREE_URI, null) ?: return
+        val uri = Uri.parse(persisted)
+        val root = DocumentFile.fromTreeUri(this, uri)
+        if (root != null && root.exists() && root.isDirectory) {
+            navigationTreeUri = uri
+        }
     }
 
     private fun playSelectedAudio(uri: Uri) {
@@ -464,7 +455,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openBranch(folder: DocumentFile) {
-        Log.d(TAG, "left folder navigation change -> selectedUri=${folder.uri}")
+        Log.d(TAG, "left folder navigation down/change -> selectedUri=${folder.uri}")
         mainScope.launch {
             renderFolderContext(folder, currentTrackUri)
         }
@@ -485,7 +476,7 @@ class MainActivity : AppCompatActivity() {
         selectLeftItem(selectedFolderUri)
         Log.d(TAG, "selected left folder uri=$selectedFolderUri")
 
-        val rootFolder = resolveNavigationRoot(selectedFolder)
+        val rootFolder = resolveActiveNavigationRoot(selectedFolder)
         val breadcrumb = buildBreadcrumb(selectedFolder, rootFolder.uri)
         currentBreadcrumb = breadcrumb
         pathText.text = breadcrumb
@@ -493,9 +484,10 @@ class MainActivity : AppCompatActivity() {
         usbStatusText.text = getString(R.string.status_usb_connected)
 
         val parent = resolveParentWithinRoot(selectedFolder, rootFolder)
-        val childFolders = runCatching { repository.listChildFoldersOnly(selectedFolder) }
+        val displayFolder = parent ?: selectedFolder
+        val childFolders = runCatching { repository.listChildFoldersOnly(displayFolder) }
             .getOrElse {
-                Log.d(TAG, "renderFolderContext listChildFoldersOnly failed folder=${selectedFolder.uri}: ${it.message}")
+                Log.d(TAG, "renderFolderContext listChildFoldersOnly failed folder=${displayFolder.uri}: ${it.message}")
                 emptyList()
             }
 
@@ -521,19 +513,27 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.rightEmptyText).visibility = if (tracks.isEmpty()) View.VISIBLE else View.GONE
     }
 
-    private fun resolveNavigationRoot(selectedFolder: DocumentFile): DocumentFile {
-        val root = selectedRootUri?.let { DocumentFile.fromTreeUri(this, it) }
+    private fun resolveActiveNavigationRoot(selectedFolder: DocumentFile): DocumentFile {
+        val root = navigationTreeUri?.let { DocumentFile.fromTreeUri(this, it) }
         if (root != null && root.exists() && isDescendantOfBranch(selectedFolder, root)) {
             return root
         }
-        return selectedFolder
+        navigationTreeUri = findBestNavigationTreeUriForFolder(selectedFolder)
+        val fallbackRoot = navigationTreeUri?.let { DocumentFile.fromTreeUri(this, it) }
+        return if (fallbackRoot != null && fallbackRoot.exists() && isDescendantOfBranch(selectedFolder, fallbackRoot)) {
+            fallbackRoot
+        } else {
+            selectedFolder
+        }
     }
 
     private suspend fun resolveContainingFolderFromPickedFile(fileUri: Uri): DocumentFile? {
-        val treeUri = selectedRootUri ?: return null
+        val treeCandidates = contentResolver.persistedUriPermissions
+            .filter { it.isReadPermission && it.uri != null }
+            .map { it.uri }
+            .distinct()
         val authority = fileUri.authority
-        if (authority.isNullOrBlank() || authority != treeUri.authority) {
-            Log.d(TAG, "resolveContainingFolderFromPickedFile skipped: authority mismatch tree=${treeUri.authority} file=$authority uri=$fileUri")
+        if (authority.isNullOrBlank()) {
             return null
         }
 
@@ -549,37 +549,30 @@ class MainActivity : AppCompatActivity() {
         val parentDocId = docId.substring(0, separatorIndex)
         Log.d(TAG, "resolveContainingFolderFromPickedFile docId=$docId parentDocId=$parentDocId")
 
-        val parentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, parentDocId)
-        val folder = DocumentFile.fromTreeUri(this, parentUri) ?: return null
-        if (!folder.exists() || !folder.isDirectory) {
+        treeCandidates.forEach { treeUri ->
+            if (treeUri.authority != authority) return@forEach
+            val parentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, parentDocId)
+            val folder = DocumentFile.fromTreeUri(this, parentUri) ?: return@forEach
+            if (!folder.exists() || !folder.isDirectory) return@forEach
+            val canListChildren = try {
+                repository.listChildren(folder)
+                true
+            } catch (_: Exception) {
+                false
+            }
             Log.d(
                 TAG,
-                "resolveContainingFolderFromPickedFile rejected tree candidate uri=$parentUri exists=${folder.exists()} isDirectory=${folder.isDirectory}"
+                "resolveContainingFolderFromPickedFile tree candidate uri=$parentUri canListChildren=$canListChildren"
             )
-            return null
+            if (canListChildren) {
+                Log.d(
+                    TAG,
+                    "resolveContainingFolderFromPickedFile success for uri=$fileUri parentUri=${folder.uri}"
+                )
+                return folder
+            }
         }
-
-        val canListChildren = try {
-            repository.listChildren(folder)
-            true
-        } catch (error: Exception) {
-            Log.d(
-                TAG,
-                "resolveContainingFolderFromPickedFile failed listing candidate uri=$parentUri: ${error.message}"
-            )
-            false
-        }
-        Log.d(
-            TAG,
-            "resolveContainingFolderFromPickedFile tree candidate uri=$parentUri canListChildren=$canListChildren"
-        )
-        if (!canListChildren) return null
-
-        Log.d(
-            TAG,
-            "resolveContainingFolderFromPickedFile success for uri=$fileUri parentUri=${folder.uri}"
-        )
-        return folder
+        return null
     }
 
     private fun isDescendantOfBranch(candidate: DocumentFile, branch: DocumentFile): Boolean {
@@ -600,20 +593,22 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun alignExplorerToFolder(folder: DocumentFile) {
         Log.d(TAG, "resolved containing folder uri=${folder.uri}")
+        navigationTreeUri = findBestNavigationTreeUriForFolder(folder)
+        navigationTreeUri?.let { prefs.edit { putString(KEY_LAST_TREE_URI, it.toString()) } }
         renderFolderContext(folder, currentTrackUri)
     }
 
     private fun syncInitialFolderContext() {
-        val rootUri = selectedRootUri
+        val rootUri = navigationTreeUri
         if (rootUri == null) {
-            usbStatusText.text = getString(R.string.status_no_sources)
+            usbStatusText.text = getString(R.string.status_no_usb)
             pathText.text = getString(R.string.status_no_usb)
             topSourceText.text = getString(R.string.top_source_placeholder)
             leftAdapter.submitList(emptyList())
             rightAdapter.submitList(emptyList())
-            findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.add_music_source)
+            findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.empty_left_add_folder)
             findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
-            findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.select_source_hint)
+            findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.empty_right_folder_tracks_hint)
             findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
             return
         }
@@ -627,8 +622,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun navigateToParentFolder() {
         val current = selectedLeftFolder ?: return
-        val root = resolveNavigationRoot(current)
+        val root = resolveActiveNavigationRoot(current)
         val parent = resolveParentWithinRoot(current, root) ?: return
+        Log.d(TAG, "left folder navigation up: from=${current.uri} to=${parent.uri}")
         openBranch(parent)
     }
 
@@ -724,10 +720,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveSourceUri(uri: Uri) {
-        val current = prefs.getStringSet(KEY_SOURCE_URIS, emptySet())?.toMutableSet() ?: mutableSetOf()
-        current.add(uri.toString())
-        prefs.edit { putStringSet(KEY_SOURCE_URIS, current) }
+    private fun findBestNavigationTreeUriForFolder(folder: DocumentFile): Uri? {
+        val folderDocId = runCatching { DocumentsContract.getDocumentId(folder.uri) }.getOrNull() ?: return null
+        return contentResolver.persistedUriPermissions
+            .asSequence()
+            .filter { it.isReadPermission }
+            .mapNotNull { perm ->
+                val treeDocId = runCatching { DocumentsContract.getTreeDocumentId(perm.uri) }.getOrNull()
+                    ?: return@mapNotNull null
+                if (folderDocId == treeDocId || folderDocId.startsWith("$treeDocId/")) {
+                    treeDocId.length to perm.uri
+                } else {
+                    null
+                }
+            }
+            .maxByOrNull { it.first }
+            ?.second
     }
 
     private fun updateProgress(positionMs: Long, durationMs: Long) {
@@ -808,8 +816,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
         private const val PREFS_NAME = "player_prefs"
-        private const val KEY_SOURCE_URIS = "source_uris"
-        private const val KEY_SELECTED_SOURCE_URI = "selected_source_uri"
+        private const val KEY_LAST_TREE_URI = "last_tree_uri"
         private const val CLOCK_REFRESH_MS = 30_000L
         private const val PLAYER_PROGRESS_POLL_MS = 1_000L
     }
