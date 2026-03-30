@@ -465,14 +465,15 @@ class MainActivity : AppCompatActivity() {
         return folder
     }
 
-    private fun openBranch(folder: DocumentFile) {
+    private fun openBranch(folder: DocumentFile, expandSelectedFolder: Boolean = true) {
         Log.d(TAG, "folder navigation change -> selectedUri=${folder.uri}")
-        mainScope.launch { renderFolderContext(folder, currentTrackUri) }
+        mainScope.launch { renderFolderContext(folder, currentTrackUri, expandSelectedFolder) }
     }
 
     private suspend fun renderFolderContext(
         selectedFolder: DocumentFile,
-        selectedTrackUri: String?
+        selectedTrackUri: String?,
+        expandSelectedFolder: Boolean = true
     ) {
         if (!repository.isKnownFolderReference(selectedFolder)) {
             showUsbError()
@@ -487,7 +488,9 @@ class MainActivity : AppCompatActivity() {
 
         val rootFolder = resolveActiveNavigationRoot(selectedFolder)
         expandedRightFolderUris += rootFolder.uri.toString()
-        expandedRightFolderUris += selectedFolderUri
+        if (expandSelectedFolder) {
+            expandedRightFolderUris += selectedFolderUri
+        }
         val breadcrumb = buildBreadcrumb(selectedFolder, rootFolder.uri)
         currentBreadcrumb = breadcrumb
         pathText.text = breadcrumb
@@ -531,12 +534,28 @@ class MainActivity : AppCompatActivity() {
 
     private fun onRightFolderTapped(folder: DocumentFile) {
         val folderUri = folder.uri.toString()
-        expandedRightFolderUris += folderUri
-        openBranch(folder)
+        val isExpanded = expandedRightFolderUris.contains(folderUri)
+        if (isExpanded && selectedRightFolder?.uri == folder.uri) {
+            collapseRightBranch(folder)
+            openBranch(folder, expandSelectedFolder = false)
+        } else {
+            expandedRightFolderUris += folderUri
+            openBranch(folder)
+        }
     }
 
-    private fun collapseRightBranch(folderUri: String) {
-        val toRemove = expandedRightFolderUris.filter { it == folderUri || it.startsWith("$folderUri/") }
+    private fun collapseRightBranch(folder: DocumentFile) {
+        val collapseDocId = runCatching { DocumentsContract.getDocumentId(folder.uri) }.getOrNull()
+        if (collapseDocId == null) {
+            expandedRightFolderUris.remove(folder.uri.toString())
+            return
+        }
+        val toRemove = expandedRightFolderUris.filter { uriString ->
+            val expandedDocId = runCatching {
+                DocumentsContract.getDocumentId(Uri.parse(uriString))
+            }.getOrNull()
+            expandedDocId != null && (expandedDocId == collapseDocId || expandedDocId.startsWith("$collapseDocId/"))
+        }
         expandedRightFolderUris.removeAll(toRemove.toSet())
     }
 
@@ -553,7 +572,7 @@ class MainActivity : AppCompatActivity() {
             leftAdapter.submitList(emptyList())
             leftAdapter.setSelectedKey(null)
             leftAdapter.setHighlightedUri(currentTrackUri)
-            findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.empty_right_folder_tracks_hint)
+            findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.select_folder_to_show_songs)
             findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
             renderRightFolderTree(root)
         }
@@ -716,9 +735,9 @@ class MainActivity : AppCompatActivity() {
             usbStatusText.text = getString(R.string.status_no_usb)
             pathText.text = getString(R.string.status_no_usb)
             topSourceText.text = getString(R.string.top_source_placeholder)
-            findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.empty_right_folder_tracks_hint)
+            findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.pick_root_folder_hint)
             findViewById<TextView>(R.id.leftEmptyText).visibility = if (leftAdapter.itemCount == 0) View.VISIBLE else View.GONE
-            findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.empty_left_add_folder)
+            findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.pick_root_folder_hint)
             findViewById<TextView>(R.id.rightEmptyText).visibility = if (rightAdapter.itemCount == 0) View.VISIBLE else View.GONE
             Log.d(TAG, "syncInitialFolderContext retained panel state leftPanelItemCount=${leftAdapter.itemCount} rightPanelTrackCount=${rightAdapter.itemCount}")
             return

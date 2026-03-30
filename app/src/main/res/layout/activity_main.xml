@@ -98,7 +98,7 @@
                 android:layout_height="wrap_content"
                 android:paddingStart="36dp"
                 android:paddingTop="24dp"
-                android:text="@string/folders"
+                android:text="@string/songs_panel_title"
                 android:textColor="@color/text_primary"
                 android:textSize="16.5sp"
                 android:textStyle="bold" />
@@ -264,7 +264,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Playlist"
+                android:text="@string/folders_panel_title"
                 android:textColor="@color/text_primary"
                 android:textSize="16.5sp"
                 android:paddingStart="36dp"
@@ -299,7 +299,7 @@
                 android:layout_marginTop="4dp"
                 android:background="@android:color/transparent"
                 android:gravity="center"
-                android:text="@string/folder_files_footer"
+                android:text="@string/folder_explorer_footer"
                 android:textColor="@color/text_secondary"
                 android:textSize="10sp"
                 android:textStyle="bold" />
