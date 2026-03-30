@@ -382,7 +382,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun playSelectedAudio(uri: Uri) {
-        Log.d(TAG, "playSelectedAudio requested uri=$uri")
+        Log.d(TAG, "playSelectedAudio requested uri=$uri selectedRootUri=$navigationTreeUri selectedRootIsNull=${navigationTreeUri == null}")
         val persistResult = persistUriPermission(uri)
         Log.d(TAG, "playSelectedAudio persistUriPermission(uri=$uri)=$persistResult")
         if (!persistResult) {
@@ -415,29 +415,47 @@ class MainActivity : AppCompatActivity() {
         try {
             val containingFolder = resolveContainingFolderFromPickedFile(uri)
                 ?: resolveParentFolderFromSingleDocument(uri)
+            Log.d(
+                TAG,
+                "tryRestoreExplorerContextFromPickedFile containingFolderResolved=${containingFolder != null} uri=$uri"
+            )
             if (containingFolder != null) {
                 Log.d(
                     TAG,
                     "playSelectedAudio optional explorer restore success containingFolderUri=${containingFolder.uri}"
                 )
                 alignExplorerToFolder(containingFolder)
-            } else {
-                Log.d(
-                    TAG,
-                    "playSelectedAudio optional explorer restore skipped: containing folder unresolved for uri=$uri"
-                )
-                Toast.makeText(this, R.string.file_context_unavailable, Toast.LENGTH_SHORT).show()
+                return
             }
+
+            val fallbackParentFolder = resolveParentFolderReferenceFromSingleDocument(uri)
+            renderStandaloneFileFallback(uri, fallbackParentFolder)
+            Log.d(
+                TAG,
+                "playSelectedAudio optional explorer restore fallback used uri=$uri fallbackParent=${fallbackParentFolder?.uri}"
+            )
+            Toast.makeText(this, R.string.file_context_unavailable, Toast.LENGTH_SHORT).show()
         } catch (error: Exception) {
             Log.d(
                 TAG,
                 "playSelectedAudio optional explorer restore failed for uri=$uri: ${error.message}"
             )
+            renderStandaloneFileFallback(uri, resolveParentFolderReferenceFromSingleDocument(uri))
             Toast.makeText(this, R.string.file_context_unavailable, Toast.LENGTH_SHORT).show()
         }
     }
 
     private suspend fun resolveParentFolderFromSingleDocument(fileUri: Uri): DocumentFile? {
+        val folder = resolveParentFolderReferenceFromSingleDocument(fileUri) ?: return null
+        val canListChildren = runCatching {
+            repository.listChildren(folder)
+            true
+        }.getOrDefault(false)
+        Log.d(TAG, "resolveParentFolderFromSingleDocument uri=$fileUri parentUri=${folder.uri} canListChildren=$canListChildren")
+        return if (canListChildren) folder else null
+    }
+
+    private fun resolveParentFolderReferenceFromSingleDocument(fileUri: Uri): DocumentFile? {
         val authority = fileUri.authority ?: return null
         val docId = runCatching { DocumentsContract.getDocumentId(fileUri) }.getOrNull() ?: return null
         val separatorIndex = docId.lastIndexOf('/')
@@ -446,12 +464,8 @@ class MainActivity : AppCompatActivity() {
         val parentUri = DocumentsContract.buildDocumentUri(authority, parentDocId)
         val folder = DocumentFile.fromSingleUri(this, parentUri) ?: return null
         if (!folder.exists() || !folder.isDirectory) return null
-        val canListChildren = runCatching {
-            repository.listChildren(folder)
-            true
-        }.getOrDefault(false)
-        Log.d(TAG, "resolveParentFolderFromSingleDocument uri=$fileUri parentUri=$parentUri canListChildren=$canListChildren")
-        return if (canListChildren) folder else null
+        Log.d(TAG, "resolveParentFolderReferenceFromSingleDocument uri=$fileUri parentUri=$parentUri")
+        return folder
     }
 
     private fun openBranch(folder: DocumentFile) {
@@ -497,6 +511,7 @@ class MainActivity : AppCompatActivity() {
         }
         leftItems.addAll(childFolders.map { FileEntryAdapter.EntryItem(documentFile = it) })
         leftAdapter.submitList(leftItems)
+        Log.d(TAG, "renderFolderContext leftPanelItemCount=${leftItems.size} folderUri=${selectedFolder.uri}")
         findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.no_folders_found)
         findViewById<TextView>(R.id.leftEmptyText).visibility = if (childFolders.isEmpty()) View.VISIBLE else View.GONE
 
@@ -528,14 +543,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun resolveContainingFolderFromPickedFile(fileUri: Uri): DocumentFile? {
-        val treeCandidates = contentResolver.persistedUriPermissions
-            .filter { it.isReadPermission && it.uri != null }
-            .map { it.uri }
-            .distinct()
         val authority = fileUri.authority
         if (authority.isNullOrBlank()) {
             return null
         }
+        val treeCandidates = buildList {
+            val selectedRoot = navigationTreeUri
+            Log.d(TAG, "resolveContainingFolderFromPickedFile selectedRootUri=$selectedRoot selectedRootIsNull=${selectedRoot == null}")
+            if (selectedRoot != null && selectedRoot.authority == authority) {
+                add(selectedRoot)
+            }
+            addAll(
+                contentResolver.persistedUriPermissions
+                    .asSequence()
+                    .filter { it.isReadPermission && it.uri != null && it.uri.authority == authority }
+                    .map { it.uri }
+                    .toList()
+            )
+        }.distinct()
 
         val docId = runCatching { DocumentsContract.getDocumentId(fileUri) }
             .onFailure { Log.d(TAG, "resolveContainingFolderFromPickedFile no documentId for uri=$fileUri: ${it.message}") }
@@ -575,6 +600,51 @@ class MainActivity : AppCompatActivity() {
         return null
     }
 
+
+    private suspend fun renderStandaloneFileFallback(fileUri: Uri, fallbackFolder: DocumentFile?) {
+        val selectedFile = DocumentFile.fromSingleUri(this, fileUri)
+            ?.takeIf { it.exists() && !it.isDirectory }
+        val fallbackFolderName = fallbackFolder?.name ?: selectedFile?.name ?: getString(R.string.no_track)
+
+        val leftItems = mutableListOf<FileEntryAdapter.EntryItem>()
+        if (fallbackFolder != null) {
+            leftItems += FileEntryAdapter.EntryItem(
+                customId = "standalone-folder:${fallbackFolder.uri}",
+                customName = fallbackFolder.name ?: getString(R.string.no_track),
+                customIcon = "📁",
+                isCustomFolder = true,
+                isEnabled = false
+            )
+        }
+        leftAdapter.submitList(leftItems)
+        selectLeftItem(leftItems.firstOrNull()?.customId)
+
+        val rightItems = if (selectedFile != null) {
+            listOf(FileEntryAdapter.EntryItem(documentFile = selectedFile))
+        } else {
+            emptyList()
+        }
+        rightAdapter.submitList(rightItems)
+        rightAdapter.setHighlightedUri(currentTrackUri)
+
+        selectedLeftFolder = fallbackFolder
+        currentRightTrackScope = fallbackFolder
+        currentBreadcrumb = fallbackFolderName
+        pathText.text = fallbackFolderName
+        topSourceText.text = getString(R.string.showing_music_in, fallbackFolderName)
+        usbStatusText.text = getString(R.string.status_usb_connected)
+
+        findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.empty_left_add_folder)
+        findViewById<TextView>(R.id.leftEmptyText).visibility = if (leftItems.isEmpty()) View.VISIBLE else View.GONE
+        findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.empty_right_folder_tracks_hint)
+        findViewById<TextView>(R.id.rightEmptyText).visibility = if (rightItems.isEmpty()) View.VISIBLE else View.GONE
+
+        Log.d(
+            TAG,
+            "renderStandaloneFileFallback used=true folderUri=${fallbackFolder?.uri} leftPanelItemCount=${leftItems.size} rightPanelTrackCount=${rightItems.size}"
+        )
+    }
+
     private fun isDescendantOfBranch(candidate: DocumentFile, branch: DocumentFile): Boolean {
         val branchDocId = runCatching { DocumentsContract.getDocumentId(branch.uri) }.getOrNull() ?: return false
         val candidateDocId = runCatching { DocumentsContract.getDocumentId(candidate.uri) }.getOrNull() ?: return false
@@ -600,16 +670,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun syncInitialFolderContext() {
         val rootUri = navigationTreeUri
+        Log.d(TAG, "syncInitialFolderContext selectedRootUri=$rootUri selectedRootIsNull=${rootUri == null}")
         if (rootUri == null) {
             usbStatusText.text = getString(R.string.status_no_usb)
             pathText.text = getString(R.string.status_no_usb)
             topSourceText.text = getString(R.string.top_source_placeholder)
-            leftAdapter.submitList(emptyList())
-            rightAdapter.submitList(emptyList())
             findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.empty_left_add_folder)
-            findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
+            findViewById<TextView>(R.id.leftEmptyText).visibility = if (leftAdapter.itemCount == 0) View.VISIBLE else View.GONE
             findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.empty_right_folder_tracks_hint)
-            findViewById<TextView>(R.id.rightEmptyText).visibility = View.VISIBLE
+            findViewById<TextView>(R.id.rightEmptyText).visibility = if (rightAdapter.itemCount == 0) View.VISIBLE else View.GONE
+            Log.d(TAG, "syncInitialFolderContext retained panel state leftPanelItemCount=${leftAdapter.itemCount} rightPanelTrackCount=${rightAdapter.itemCount}")
             return
         }
         val root = DocumentFile.fromTreeUri(this, rootUri)
