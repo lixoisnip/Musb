@@ -309,7 +309,7 @@
     <FrameLayout
         android:id="@+id/controlRow"
         android:layout_width="0dp"
-        android:layout_height="194dp"
+        android:layout_height="188dp"
         android:background="@drawable/bg_controls_cluster"
         android:paddingHorizontal="0dp"
         android:paddingTop="0dp"
@@ -321,7 +321,8 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
+            android:layout_gravity="center_horizontal|top"
+            android:layout_marginTop="14dp"
             android:gravity="center"
             android:orientation="horizontal"
             android:paddingHorizontal="0dp">
