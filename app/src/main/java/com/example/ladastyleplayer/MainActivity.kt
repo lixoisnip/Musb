@@ -444,12 +444,12 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun resolveParentFolderFromSingleDocument(fileUri: Uri): DocumentFile? {
         val folder = resolveParentFolderReferenceFromSingleDocument(fileUri) ?: return null
-        val canListChildren = runCatching {
-            repository.listChildren(folder)
-            true
-        }.getOrDefault(false)
-        Log.d(TAG, "resolveParentFolderFromSingleDocument uri=$fileUri parentUri=${folder.uri} canListChildren=$canListChildren")
-        return if (canListChildren) folder else null
+        val canEnumerate = canEnumerateFolderContext(folder)
+        Log.d(
+            TAG,
+            "resolveParentFolderFromSingleDocument uri=$fileUri parentUri=${folder.uri} enumerable=$canEnumerate source=single-document"
+        )
+        return if (canEnumerate) folder else null
     }
 
     private fun resolveParentFolderReferenceFromSingleDocument(fileUri: Uri): DocumentFile? {
@@ -461,7 +461,7 @@ class MainActivity : AppCompatActivity() {
         val parentUri = DocumentsContract.buildDocumentUri(authority, parentDocId)
         val folder = DocumentFile.fromSingleUri(this, parentUri) ?: return null
         if (!folder.exists() || !folder.isDirectory) return null
-        Log.d(TAG, "resolveParentFolderReferenceFromSingleDocument uri=$fileUri parentUri=$parentUri")
+        Log.d(TAG, "resolveParentFolderReferenceFromSingleDocument uri=$fileUri parentUri=$parentUri source=single-document")
         return folder
     }
 
@@ -549,17 +549,18 @@ class MainActivity : AppCompatActivity() {
         val treeCandidates = buildList {
             val selectedRoot = navigationTreeUri
             Log.d(TAG, "resolveContainingFolderFromPickedFile selectedRootUri=$selectedRoot selectedRootIsNull=${selectedRoot == null}")
-            if (selectedRoot != null && selectedRoot.authority == authority) {
+            if (selectedRoot != null && selectedRoot.authority == authority && DocumentsContract.isTreeUri(selectedRoot)) {
                 add(selectedRoot)
             }
             addAll(
                 contentResolver.persistedUriPermissions
                     .asSequence()
-                    .filter { it.isReadPermission && it.uri != null && it.uri.authority == authority }
+                    .filter { it.isReadPermission && it.uri.authority == authority && DocumentsContract.isTreeUri(it.uri) }
                     .map { it.uri }
                     .toList()
             )
         }.distinct()
+        Log.d(TAG, "resolveContainingFolderFromPickedFile authority=$authority persistedTreeCandidates=${treeCandidates.size}")
 
         val docId = runCatching { DocumentsContract.getDocumentId(fileUri) }
             .onFailure { Log.d(TAG, "resolveContainingFolderFromPickedFile no documentId for uri=$fileUri: ${it.message}") }
@@ -573,25 +574,37 @@ class MainActivity : AppCompatActivity() {
         val parentDocId = docId.substring(0, separatorIndex)
         Log.d(TAG, "resolveContainingFolderFromPickedFile docId=$docId parentDocId=$parentDocId")
 
-        treeCandidates.forEach { treeUri ->
+        val bestTreeUri = treeCandidates
+            .filter { treeUri ->
+                val treeDocId = runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull()
+                treeDocId != null && (parentDocId == treeDocId || parentDocId.startsWith("$treeDocId/"))
+            }
+            .maxByOrNull { treeUri ->
+                runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull()?.length ?: -1
+            }
+        Log.d(TAG, "resolveContainingFolderFromPickedFile bestMatchingTreeUri=$bestTreeUri authority=$authority")
+
+        val prioritizedCandidates = buildList {
+            if (bestTreeUri != null) add(bestTreeUri)
+            addAll(treeCandidates.filterNot { it == bestTreeUri })
+        }
+
+        prioritizedCandidates.forEach { treeUri ->
             if (treeUri.authority != authority) return@forEach
+            val treeDocId = runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull()
+            Log.d(TAG, "resolveContainingFolderFromPickedFile checkingTreeUri=$treeUri treeDocId=$treeDocId authority=${treeUri.authority}")
             val parentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, parentDocId)
             val folder = DocumentFile.fromTreeUri(this, parentUri) ?: return@forEach
             if (!folder.exists() || !folder.isDirectory) return@forEach
-            val canListChildren = try {
-                repository.listChildren(folder)
-                true
-            } catch (_: Exception) {
-                false
-            }
+            val canListChildren = canEnumerateFolderContext(folder)
             Log.d(
                 TAG,
-                "resolveContainingFolderFromPickedFile tree candidate uri=$parentUri canListChildren=$canListChildren"
+                "resolveContainingFolderFromPickedFile tree candidate uri=$parentUri enumerable=$canListChildren source=tree-based"
             )
             if (canListChildren) {
                 Log.d(
                     TAG,
-                    "resolveContainingFolderFromPickedFile success for uri=$fileUri parentUri=${folder.uri}"
+                    "resolveContainingFolderFromPickedFile success for uri=$fileUri parentUri=${folder.uri} source=tree-based"
                 )
                 return folder
             }
@@ -601,21 +614,38 @@ class MainActivity : AppCompatActivity() {
 
 
     private suspend fun renderStandaloneFileFallback(fileUri: Uri, fallbackFolder: DocumentFile?) {
-        if (fallbackFolder != null && fallbackFolder.exists() && fallbackFolder.isDirectory) {
+        val treeReconstructedFolder = resolveContainingFolderFromPickedFile(fileUri)
+        val usableFallbackFolder = when {
+            treeReconstructedFolder != null -> {
+                Log.d(TAG, "renderStandaloneFileFallback resolvedFallbackFolder source=tree-based uri=${treeReconstructedFolder.uri}")
+                treeReconstructedFolder
+            }
+            fallbackFolder != null -> {
+                val enumerable = canEnumerateFolderContext(fallbackFolder)
+                Log.d(
+                    TAG,
+                    "renderStandaloneFileFallback resolvedFallbackFolder source=single-document uri=${fallbackFolder.uri} enumerable=$enumerable"
+                )
+                if (enumerable) fallbackFolder else null
+            }
+            else -> null
+        }
+
+        if (usableFallbackFolder != null && usableFallbackFolder.exists() && usableFallbackFolder.isDirectory) {
             val promoted = runCatching {
-                alignExplorerToFolder(fallbackFolder)
+                alignExplorerToFolder(usableFallbackFolder)
                 true
             }.getOrElse {
                 Log.d(
                     TAG,
-                    "renderStandaloneFileFallback promotedToFolderContext failed folderUri=${fallbackFolder.uri}: ${it.message}"
+                    "renderStandaloneFileFallback promotedToFolderContext failed folderUri=${usableFallbackFolder.uri}: ${it.message}"
                 )
                 false
             }
             if (promoted) {
                 Log.d(
                     TAG,
-                    "renderStandaloneFileFallback promotedToFolderContext=true folderUri=${fallbackFolder.uri}"
+                    "renderStandaloneFileFallback promotedToFolderContext=true alignExplorerToFolder=true folderUri=${usableFallbackFolder.uri}"
                 )
                 return
             }
@@ -623,13 +653,13 @@ class MainActivity : AppCompatActivity() {
 
         val selectedFile = DocumentFile.fromSingleUri(this, fileUri)
             ?.takeIf { it.exists() && !it.isDirectory }
-        val fallbackFolderName = fallbackFolder?.name ?: selectedFile?.name ?: getString(R.string.no_track)
+        val fallbackFolderName = usableFallbackFolder?.name ?: selectedFile?.name ?: getString(R.string.no_track)
 
         val leftItems = mutableListOf<FileEntryAdapter.EntryItem>()
-        if (fallbackFolder != null) {
+        if (usableFallbackFolder != null) {
             leftItems += FileEntryAdapter.EntryItem(
-                customId = "standalone-folder:${fallbackFolder.uri}",
-                customName = fallbackFolder.name ?: getString(R.string.no_track),
+                customId = "standalone-folder:${usableFallbackFolder.uri}",
+                customName = usableFallbackFolder.name ?: getString(R.string.no_track),
                 customIcon = "📁",
                 isCustomFolder = true,
                 isEnabled = false
@@ -646,8 +676,8 @@ class MainActivity : AppCompatActivity() {
         rightAdapter.submitList(rightItems)
         rightAdapter.setHighlightedUri(currentTrackUri)
 
-        selectedLeftFolder = fallbackFolder
-        currentRightTrackScope = fallbackFolder
+        selectedLeftFolder = usableFallbackFolder
+        currentRightTrackScope = usableFallbackFolder
         currentBreadcrumb = fallbackFolderName
         pathText.text = fallbackFolderName
         topSourceText.text = getString(R.string.showing_music_in, fallbackFolderName)
@@ -660,7 +690,7 @@ class MainActivity : AppCompatActivity() {
 
         Log.d(
             TAG,
-            "renderStandaloneFileFallback used=true folderUri=${fallbackFolder?.uri} leftPanelItemCount=${leftItems.size} rightPanelTrackCount=${rightItems.size}"
+            "renderStandaloneFileFallback used=true minimalFallback=true folderUri=${usableFallbackFolder?.uri} leftPanelItemCount=${leftItems.size} rightPanelTrackCount=${rightItems.size}"
         )
     }
 
@@ -681,10 +711,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun alignExplorerToFolder(folder: DocumentFile) {
-        Log.d(TAG, "resolved containing folder uri=${folder.uri}")
+        val canEnumerate = canEnumerateFolderContext(folder)
+        Log.d(TAG, "resolved containing folder uri=${folder.uri} enumerable=$canEnumerate")
+        if (!canEnumerate) {
+            Log.d(TAG, "alignExplorerToFolder skipped=true reason=not-enumerable folderUri=${folder.uri}")
+            return
+        }
         navigationTreeUri = findBestNavigationTreeUriForFolder(folder)
         navigationTreeUri?.let { prefs.edit { putString(KEY_LAST_TREE_URI, it.toString()) } }
-        Log.d(TAG, "alignExplorerToFolder using renderFolderContext folderUri=${folder.uri}")
+        Log.d(TAG, "alignExplorerToFolder used=true folderUri=${folder.uri} navigationTreeUri=$navigationTreeUri")
         renderFolderContext(folder, currentTrackUri)
     }
 
@@ -813,10 +848,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun findBestNavigationTreeUriForFolder(folder: DocumentFile): Uri? {
+        val folderAuthority = folder.uri.authority
         val folderDocId = runCatching { DocumentsContract.getDocumentId(folder.uri) }.getOrNull() ?: return null
-        return contentResolver.persistedUriPermissions
+        val best = contentResolver.persistedUriPermissions
             .asSequence()
-            .filter { it.isReadPermission }
+            .filter { it.isReadPermission && DocumentsContract.isTreeUri(it.uri) && it.uri.authority == folderAuthority }
             .mapNotNull { perm ->
                 val treeDocId = runCatching { DocumentsContract.getTreeDocumentId(perm.uri) }.getOrNull()
                     ?: return@mapNotNull null
@@ -828,6 +864,14 @@ class MainActivity : AppCompatActivity() {
             }
             .maxByOrNull { it.first }
             ?.second
+        Log.d(TAG, "findBestNavigationTreeUriForFolder folderUri=${folder.uri} authority=$folderAuthority matchedTreeUri=$best")
+        return best
+    }
+
+    private suspend fun canEnumerateFolderContext(folder: DocumentFile): Boolean {
+        val enumerable = repository.canEnumerateFolderContext(folder)
+        Log.d(TAG, "canEnumerateFolderContext folderUri=${folder.uri} enumerable=$enumerable")
+        return enumerable
     }
 
     private fun updateProgress(positionMs: Long, durationMs: Long) {
