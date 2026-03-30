@@ -495,6 +495,8 @@ class MainActivity : AppCompatActivity() {
         usbStatusText.text = getString(R.string.status_usb_connected)
 
         val parent = resolveParentWithinRoot(selectedFolder, rootFolder)
+        // Left panel context is always rooted in the selected folder itself.
+        // Parent is used only to decide whether to show the ".." navigation item.
         val childFolders = runCatching { repository.listChildFoldersOnly(selectedFolder) }
             .getOrElse {
                 Log.d(TAG, "renderFolderContext listChildFoldersOnly failed folder=${selectedFolder.uri}: ${it.message}")
@@ -509,7 +511,7 @@ class MainActivity : AppCompatActivity() {
         leftAdapter.submitList(leftItems)
         Log.d(TAG, "renderFolderContext leftPanelItemCount=${leftItems.size} folderUri=${selectedFolder.uri}")
         findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.no_folders_found)
-        findViewById<TextView>(R.id.leftEmptyText).visibility = if (childFolders.isEmpty()) View.VISIBLE else View.GONE
+        findViewById<TextView>(R.id.leftEmptyText).visibility = if (leftItems.isEmpty()) View.VISIBLE else View.GONE
 
         val tracks = runCatching { repository.collectSupportedAudioRecursively(selectedFolder) }
             .getOrElse {
@@ -600,18 +602,12 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun renderStandaloneFileFallback(fileUri: Uri, fallbackFolder: DocumentFile?) {
         if (fallbackFolder != null && fallbackFolder.exists() && fallbackFolder.isDirectory) {
-            val canListChildren = runCatching {
-                repository.listChildren(fallbackFolder)
-                true
-            }.getOrDefault(false)
-            if (canListChildren) {
-                Log.d(
-                    TAG,
-                    "renderStandaloneFileFallback promotedToFolderContext=true folderUri=${fallbackFolder.uri}"
-                )
-                alignExplorerToFolder(fallbackFolder)
-                return
-            }
+            Log.d(
+                TAG,
+                "renderStandaloneFileFallback promotedToFolderContext=true folderUri=${fallbackFolder.uri}"
+            )
+            alignExplorerToFolder(fallbackFolder)
+            return
         }
 
         val selectedFile = DocumentFile.fromSingleUri(this, fileUri)
