@@ -278,7 +278,8 @@ class MainActivity : AppCompatActivity() {
             showPlayFolderButton = false,
             onFolderClick = { folder -> onRightFolderTapped(folder) },
             onFileClick = { file -> playSingle(file) },
-            onPlayFolder = { _ -> }
+            onPlayFolder = { _ -> },
+            hierarchicalIndent = false
         )
 
         findViewById<RecyclerView>(R.id.leftRecycler).apply {

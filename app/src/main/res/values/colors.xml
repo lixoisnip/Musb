@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_main">#05070D</color>
-    <color name="surface_topbar">#181F2A</color>
-    <color name="surface_panel_top">#1A2330</color>
-    <color name="surface_panel_bottom">#0D131D</color>
-    <color name="surface_variant">#303742</color>
+    <color name="bg_main">#0A0907</color>
+    <color name="surface_topbar">#23201C</color>
+    <color name="surface_panel_top">#24201B</color>
+    <color name="surface_panel_bottom">#14110D</color>
+    <color name="surface_variant">#3A332C</color>
     <color name="accent_amber">#E49A3B</color>
     <color name="accent_amber_soft">#AA6A2F</color>
     <color name="accent_amber_dim">#4A2C12</color>
     <color name="text_primary">#F5F7FA</color>
-    <color name="text_secondary">#CDD3DD</color>
-    <color name="text_muted">#9FA9B6</color>
-    <color name="stroke_subtle">#313946</color>
-    <color name="list_item_bg">#191E25</color>
+    <color name="text_secondary">#D1CAC1</color>
+    <color name="text_muted">#A79B8D</color>
+    <color name="stroke_subtle">#3C352E</color>
+    <color name="list_item_bg">#201B16</color>
     <color name="list_item_selected">#392616</color>
     <color name="list_item_selected_top">#8D5C2A</color>
-    <color name="chip_bg">#2A313A</color>
+    <color name="chip_bg">#2E2822</color>
 
     <color name="control_small_top">#252C34</color>
     <color name="control_small_bottom">#181E26</color>
@@ -76,9 +76,9 @@
     <color name="control_center_inner_pressed_bottom">#151E28</color>
     <color name="control_center_inner_disabled_top">#161E26</color>
     <color name="control_center_inner_disabled_bottom">#0E141B</color>
-    <color name="control_center_inner_stroke">#2D3A49</color>
-    <color name="control_center_inner_stroke_pressed">#344355</color>
-    <color name="control_center_inner_stroke_disabled">#24303C</color>
+    <color name="control_center_inner_stroke">#3A3229</color>
+    <color name="control_center_inner_stroke_pressed">#473C31</color>
+    <color name="control_center_inner_stroke_disabled">#312920</color>
     <color name="control_center_highlight">#30FFFFFF</color>
     <color name="control_center_highlight_pressed">#3AFFFFFF</color>
 
