@@ -509,7 +509,7 @@ class MainActivity : AppCompatActivity() {
         leftAdapter.submitList(leftItems)
         Log.d(TAG, "renderFolderContext leftPanelItemCount=${leftItems.size} folderUri=${selectedFolder.uri}")
         findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.no_folders_found)
-        findViewById<TextView>(R.id.leftEmptyText).visibility = if (childFolders.isEmpty()) View.VISIBLE else View.GONE
+        findViewById<TextView>(R.id.leftEmptyText).visibility = if (leftItems.isEmpty()) View.VISIBLE else View.GONE
 
         val tracks = runCatching { repository.collectSupportedAudioRecursively(selectedFolder) }
             .getOrElse {
@@ -600,16 +600,21 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun renderStandaloneFileFallback(fileUri: Uri, fallbackFolder: DocumentFile?) {
         if (fallbackFolder != null && fallbackFolder.exists() && fallbackFolder.isDirectory) {
-            val canListChildren = runCatching {
-                repository.listChildren(fallbackFolder)
+            val promoted = runCatching {
+                alignExplorerToFolder(fallbackFolder)
                 true
-            }.getOrDefault(false)
-            if (canListChildren) {
+            }.getOrElse {
+                Log.d(
+                    TAG,
+                    "renderStandaloneFileFallback promotedToFolderContext failed folderUri=${fallbackFolder.uri}: ${it.message}"
+                )
+                false
+            }
+            if (promoted) {
                 Log.d(
                     TAG,
                     "renderStandaloneFileFallback promotedToFolderContext=true folderUri=${fallbackFolder.uri}"
                 )
-                alignExplorerToFolder(fallbackFolder)
                 return
             }
         }
