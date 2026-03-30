@@ -29,7 +29,8 @@ class FileEntryAdapter(
         val customName: String? = null,
         val customIcon: String? = null,
         val isCustomFolder: Boolean = false,
-        val isEnabled: Boolean = true
+        val isEnabled: Boolean = true,
+        val depth: Int = 0
     )
 
     private val items = mutableListOf<EntryItem>()
@@ -142,8 +143,7 @@ class FileEntryAdapter(
 
     private fun resolveStartPadding(documentFile: DocumentFile, view: View): Int {
         if (!hierarchicalIndent) return dpPadding(BASE_PADDING_DP, view)
-        val depth = documentFile.uri.path?.count { it == '/' } ?: 0
-        val nestedLevel = (depth - 4).coerceIn(0, 3)
+        val nestedLevel = items.firstOrNull { it.documentFile?.uri == documentFile.uri }?.depth?.coerceAtLeast(0) ?: 0
         return dpPadding(BASE_PADDING_DP + (nestedLevel * INDENT_STEP_DP), view)
     }
 
