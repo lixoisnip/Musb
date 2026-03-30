@@ -5,14 +5,14 @@
     android:layout_height="match_parent"
     android:background="@color/bg_main"
     android:paddingStart="34dp"
-    android:paddingTop="24dp"
+    android:paddingTop="4dp"
     android:paddingEnd="34dp"
-    android:paddingBottom="26dp">
+    android:paddingBottom="8dp">
 
     <LinearLayout
         android:id="@+id/topBar"
         android:layout_width="0dp"
-        android:layout_height="68dp"
+        android:layout_height="23dp"
         android:background="@drawable/bg_top_bar"
         android:gravity="center_vertical"
         android:orientation="horizontal"
@@ -23,13 +23,13 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <TextView
-            android:layout_width="74dp"
-            android:layout_height="48dp"
+            android:layout_width="40dp"
+            android:layout_height="20dp"
             android:background="@drawable/bg_status_badge"
             android:gravity="center"
             android:text="LS"
             android:textColor="@color/text_primary"
-            android:textSize="18sp"
+            android:textSize="9sp"
             android:textStyle="bold" />
 
         <TextView
@@ -42,7 +42,7 @@
             android:maxLines="1"
             android:text="USB • Music • Rock"
             android:textColor="@color/text_secondary"
-            android:textSize="24sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <TextView
@@ -55,7 +55,7 @@
             android:maxLines="1"
             android:text="@string/top_source_placeholder"
             android:textColor="@color/text_muted"
-            android:textSize="14sp" />
+            android:textSize="7sp" />
 
         <TextView
             android:id="@+id/clockText"
@@ -64,7 +64,7 @@
             android:layout_marginStart="16dp"
             android:text="--:--"
             android:textColor="@color/text_primary"
-            android:textSize="28sp"
+            android:textSize="14sp"
             android:textStyle="bold" />
     </LinearLayout>
 
@@ -72,7 +72,7 @@
         android:id="@+id/panelRow"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="8dp"
         android:layout_marginBottom="4dp"
         android:baselineAligned="false"
         android:orientation="horizontal"
@@ -100,7 +100,7 @@
                 android:paddingTop="24dp"
                 android:text="@string/folders"
                 android:textColor="@color/text_primary"
-                android:textSize="33sp"
+                android:textSize="16.5sp"
                 android:textStyle="bold" />
 
             <androidx.recyclerview.widget.RecyclerView
@@ -123,7 +123,7 @@
                 android:alpha="0.88"
                 android:text="@string/no_folders_found"
                 android:textColor="@color/text_muted"
-                android:textSize="11sp"
+                android:textSize="5.5sp"
                 android:visibility="gone" />
         </LinearLayout>
 
@@ -141,8 +141,8 @@
             android:paddingBottom="8dp">
 
             <FrameLayout
-                android:layout_width="415dp"
-                android:layout_height="351dp"
+                android:layout_width="360dp"
+                android:layout_height="305dp"
                 android:layout_marginTop="4dp"
                 android:background="@drawable/bg_cover_frame"
                 android:padding="0dp">
@@ -167,7 +167,7 @@
                 android:maxLines="1"
                 android:text="@string/no_track"
                 android:textColor="@color/text_primary"
-                android:textSize="44sp"
+                android:textSize="22sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -180,7 +180,7 @@
                 android:maxLines="1"
                 android:text="@string/unknown_artist"
                 android:textColor="@color/accent_amber"
-                android:textSize="29sp"
+                android:textSize="14.5sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -193,7 +193,7 @@
                 android:maxLines="1"
                 android:text="@string/unknown_album"
                 android:textColor="@color/text_muted"
-                android:textSize="23sp" />
+                android:textSize="11.5sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -229,7 +229,7 @@
                         android:layout_height="wrap_content"
                         android:text="00:00"
                         android:textColor="@color/text_secondary"
-                        android:textSize="24sp"
+                        android:textSize="12sp"
                         android:textStyle="bold" />
 
                     <View
@@ -243,7 +243,7 @@
                         android:layout_height="wrap_content"
                         android:text="00:00"
                         android:textColor="@color/text_muted"
-                        android:textSize="24sp" />
+                        android:textSize="12sp" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
@@ -266,7 +266,7 @@
                 android:layout_height="wrap_content"
                 android:text="Playlist"
                 android:textColor="@color/text_primary"
-                android:textSize="33sp"
+                android:textSize="16.5sp"
                 android:paddingStart="36dp"
                 android:paddingTop="24dp"
                 android:textStyle="bold" />
@@ -290,18 +290,18 @@
                 android:alpha="0.88"
                 android:text="@string/no_supported_audio"
                 android:textColor="@color/text_muted"
-                android:textSize="11sp"
+                android:textSize="5.5sp"
                 android:visibility="gone" />
 
             <TextView
                 android:layout_width="match_parent"
-                android:layout_height="60dp"
+                android:layout_height="30dp"
                 android:layout_marginTop="4dp"
                 android:background="@android:color/transparent"
                 android:gravity="center"
                 android:text="@string/folder_files_footer"
                 android:textColor="@color/text_secondary"
-                android:textSize="20sp"
+                android:textSize="10sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
@@ -309,7 +309,7 @@
     <FrameLayout
         android:id="@+id/controlRow"
         android:layout_width="0dp"
-        android:layout_height="188dp"
+        android:layout_height="63dp"
         android:background="@drawable/bg_controls_cluster"
         android:paddingHorizontal="0dp"
         android:paddingTop="0dp"
@@ -322,7 +322,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal|top"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="2dp"
             android:gravity="center"
             android:orientation="horizontal"
             android:paddingHorizontal="0dp">
@@ -396,13 +396,13 @@
     <LinearLayout
         android:id="@+id/bottomInfoBar"
         android:layout_width="0dp"
-        android:layout_height="86dp"
+        android:layout_height="29dp"
         android:layout_marginTop="0dp"
         android:background="@drawable/bg_bottom_info"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="36dp"
-        android:paddingEnd="18dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="6dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -413,30 +413,30 @@
             android:layout_height="wrap_content"
             android:text="@string/status_usb_connected"
             android:textColor="@color/text_primary"
-            android:textSize="23sp"
+            android:textSize="11.5sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/formatInfoText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="36dp"
+            android:layout_marginStart="12dp"
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
             android:text="MP3 • 320 kbps • 44.1 kHz"
             android:textColor="@color/text_secondary"
-            android:textSize="22sp" />
+            android:textSize="11sp" />
 
         <TextView
             android:id="@+id/deviceBadgeText"
-            android:layout_width="274dp"
-            android:layout_height="74dp"
+            android:layout_width="190dp"
+            android:layout_height="25dp"
             android:background="@drawable/bg_device_badge"
             android:gravity="center"
             android:text="TEYES CC3"
             android:textColor="@color/text_primary"
-            android:textSize="30sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
     </LinearLayout>
 
