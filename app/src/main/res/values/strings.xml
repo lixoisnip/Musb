@@ -47,6 +47,7 @@
     <string name="no_subfolders_found">No subfolders in this location</string>
     <string name="now_playing_footer">Now Playing</string>
     <string name="folder_files_footer">Current Folder Files</string>
+    <string name="folder_explorer_footer">Folder Explorer</string>
     <string name="top_source_placeholder">Showing files in folder</string>
     <string name="prev_symbol">⏮</string>
     <string name="next_symbol">⏭</string>
@@ -69,4 +70,8 @@
     <string name="seek_forward_hint">Jumped forward 10s</string>
     <string name="empty_left_add_folder">Add/open a folder</string>
     <string name="empty_right_folder_tracks_hint">Songs from selected folder will appear here</string>
+    <string name="pick_root_folder_hint">Choose root folder with a long press on the folder button</string>
+    <string name="select_folder_to_show_songs">Songs will appear after you select a folder on the right</string>
+    <string name="songs_panel_title">Songs</string>
+    <string name="folders_panel_title">Folders</string>
 </resources>
