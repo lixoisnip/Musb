@@ -19,6 +19,17 @@ class FileRepository {
     }
 
     /**
+     * Returns true when the folder can be safely enumerated for navigation context.
+     */
+    suspend fun canEnumerateFolderContext(folder: DocumentFile): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            if (!folder.exists() || !folder.isDirectory) return@runCatching false
+            folder.listFiles()
+            true
+        }.getOrDefault(false)
+    }
+
+    /**
      * Returns only direct child folders sorted stably.
      */
     suspend fun listChildFoldersOnly(folder: DocumentFile): List<DocumentFile> = withContext(Dispatchers.IO) {
