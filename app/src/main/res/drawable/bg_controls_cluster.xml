@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:top="20dp">
+    <item android:top="18dp">
         <shape android:shape="rectangle">
             <gradient
                 android:angle="270"
-                android:startColor="#171D25"
-                android:endColor="#0B1016" />
-            <corners android:topLeftRadius="20dp" android:topRightRadius="20dp" />
+                android:startColor="#1A212A"
+                android:endColor="#0C1117" />
+            <corners android:topLeftRadius="22dp" android:topRightRadius="22dp" />
         </shape>
     </item>
 
-    <item android:top="20dp">
+    <item android:top="18dp">
         <shape android:shape="rectangle">
-            <solid android:color="#00000000" />
-            <corners android:topLeftRadius="20dp" android:topRightRadius="20dp" />
-            <stroke android:width="1dp" android:color="#2F3946" />
+            <solid android:color="@android:color/transparent" />
+            <corners android:topLeftRadius="22dp" android:topRightRadius="22dp" />
+            <stroke android:width="1dp" android:color="#2B3542" />
         </shape>
     </item>
 
     <item android:gravity="top|center_horizontal"
-        android:width="170dp"
-        android:height="86dp"
+        android:width="158dp"
+        android:height="82dp"
         android:top="0dp">
         <shape android:shape="oval">
             <solid android:color="@color/bg_main" />
@@ -28,14 +28,25 @@
     </item>
 
     <item android:gravity="top|center_horizontal"
-        android:width="224dp"
-        android:height="44dp"
-        android:top="20dp">
+        android:width="194dp"
+        android:height="34dp"
+        android:top="18dp">
         <shape android:shape="oval">
+            <solid android:color="#10161E" />
+            <stroke android:width="1dp" android:color="#303B49" />
+        </shape>
+    </item>
+
+    <item android:gravity="top|center_horizontal"
+        android:width="230dp"
+        android:height="16dp"
+        android:top="18dp">
+        <shape android:shape="rectangle">
             <gradient
                 android:angle="270"
-                android:startColor="#34516272"
-                android:endColor="#00516272" />
+                android:startColor="#38FFFFFF"
+                android:endColor="@android:color/transparent" />
+            <corners android:radius="8dp" />
         </shape>
     </item>
 </layer-list>
