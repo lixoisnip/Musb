@@ -495,6 +495,8 @@ class MainActivity : AppCompatActivity() {
         usbStatusText.text = getString(R.string.status_usb_connected)
 
         val parent = resolveParentWithinRoot(selectedFolder, rootFolder)
+        // Left panel context is always rooted in the selected folder itself.
+        // Parent is used only to decide whether to show the ".." navigation item.
         val childFolders = runCatching { repository.listChildFoldersOnly(selectedFolder) }
             .getOrElse {
                 Log.d(TAG, "renderFolderContext listChildFoldersOnly failed folder=${selectedFolder.uri}: ${it.message}")
