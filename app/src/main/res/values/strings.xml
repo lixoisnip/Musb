@@ -72,6 +72,7 @@
     <string name="empty_right_folder_tracks_hint">Songs from selected folder will appear here</string>
     <string name="pick_root_folder_hint">Choose root folder first (long press the folder button)</string>
     <string name="select_folder_to_show_songs">Songs will appear after you select a folder on the right</string>
+    <string name="select_source_to_show_songs">Songs will appear after you select a source on the right</string>
     <string name="songs_panel_title">Songs</string>
     <string name="folders_panel_title">Folders</string>
     <string name="startup_source_music">Музыка</string>
