@@ -312,7 +312,7 @@
     <FrameLayout
         android:id="@+id/controlRow"
         android:layout_width="0dp"
-        android:layout_height="268dp"
+        android:layout_height="224dp"
         android:background="@drawable/bg_controls_cluster"
         android:clipChildren="false"
         android:clipToPadding="false"
@@ -360,10 +360,10 @@
                 android:tint="@color/control_icon_tint_selector" />
 
             <androidx.appcompat.widget.AppCompatImageButton
-                android:id="@+id/repeatButton"
+                android:id="@+id/shuffleButton"
                 style="@style/ControlButtonSmall"
-                android:contentDescription="@string/repeat_label"
-                android:src="@drawable/ic_transport_repeat"
+                android:contentDescription="@string/shuffle_label"
+                android:src="@drawable/ic_transport_shuffle"
                 android:tint="@color/control_icon_tint_selector" />
 
             <androidx.appcompat.widget.AppCompatImageButton
@@ -381,12 +381,12 @@
                 android:tint="@color/control_icon_tint_selector" />
 
             <androidx.appcompat.widget.AppCompatImageButton
-                android:id="@+id/shuffleButton"
+                android:id="@+id/repeatButton"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:visibility="gone"
-                android:contentDescription="@string/shuffle_label"
-                android:src="@drawable/ic_transport_shuffle" />
+                android:contentDescription="@string/repeat_label"
+                android:src="@drawable/ic_transport_repeat" />
 
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/commentButton"
