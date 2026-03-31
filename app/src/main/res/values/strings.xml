@@ -19,7 +19,7 @@
     <string name="choose_folder">Choose USB folder</string>
     <string name="folder_picker_hint">Pick a music folder</string>
     <string name="add_music_source">Add a music source</string>
-    <string name="select_source_hint">Select a source from the left panel</string>
+    <string name="select_source_hint">Select a source from the right panel</string>
     <string name="source_unavailable_suffix">Unavailable</string>
     <string name="sources">Sources</string>
     <string name="path_sources">Sources</string>
