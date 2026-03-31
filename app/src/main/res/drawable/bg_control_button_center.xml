@@ -1,134 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_enabled="false">
-        <layer-list>
-            <item>
-                <shape android:shape="oval">
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/control_center_shell_disabled_top"
-                        android:endColor="@color/control_center_shell_disabled_bottom" />
-                    <stroke android:width="1.4dp" android:color="@color/control_center_shell_stroke_disabled" />
-                </shape>
-            </item>
-            <item android:left="4dp" android:top="4dp" android:right="4dp" android:bottom="4dp">
-                <shape android:shape="oval">
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/control_center_ring_back_disabled_top"
-                        android:endColor="@color/control_center_ring_back_disabled_bottom" />
-                    <stroke android:width="2.4dp" android:color="@color/control_center_ring_disabled" />
-                </shape>
-            </item>
-            <item android:left="11dp" android:top="11dp" android:right="11dp" android:bottom="11dp">
-                <shape android:shape="oval">
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/control_center_inner_disabled_top"
-                        android:endColor="@color/control_center_inner_disabled_bottom" />
-                    <stroke android:width="0.8dp" android:color="@color/control_center_inner_stroke_disabled" />
-                </shape>
-            </item>
-        </layer-list>
-    </item>
-
-    <item android:state_pressed="true">
-        <layer-list>
-            <item>
-                <shape android:shape="oval">
-                    <gradient
-                        android:type="radial"
-                        android:gradientRadius="104dp"
-                        android:startColor="@color/control_center_outer_glow"
-                        android:centerColor="@color/control_center_outer_glow_soft"
-                        android:endColor="@android:color/transparent" />
-                </shape>
-            </item>
-            <item>
-                <shape android:shape="oval">
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/control_center_shell_pressed_top"
-                        android:endColor="@color/control_center_shell_pressed_bottom" />
-                    <stroke android:width="1.4dp" android:color="@color/control_center_shell_stroke_pressed" />
-                </shape>
-            </item>
-            <item android:left="4dp" android:top="4dp" android:right="4dp" android:bottom="4dp">
-                <shape android:shape="oval">
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/control_center_ring_back_pressed_top"
-                        android:endColor="@color/control_center_ring_back_pressed_bottom" />
-                    <stroke android:width="2.4dp" android:color="@color/control_center_ring_pressed" />
-                </shape>
-            </item>
-            <item android:left="11dp" android:top="11dp" android:right="11dp" android:bottom="11dp">
-                <shape android:shape="oval">
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/control_center_inner_pressed_top"
-                        android:endColor="@color/control_center_inner_pressed_bottom" />
-                    <stroke android:width="0.8dp" android:color="@color/control_center_inner_stroke_pressed" />
-                </shape>
-            </item>
-            <item android:left="30dp" android:top="12dp" android:right="30dp" android:bottom="82dp">
-                <shape android:shape="oval">
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/control_center_highlight_pressed"
-                        android:endColor="@android:color/transparent" />
-                </shape>
-            </item>
-        </layer-list>
-    </item>
-
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
-        <layer-list>
-            <item>
-                <shape android:shape="oval">
-                    <gradient
-                        android:type="radial"
-                        android:gradientRadius="104dp"
-                        android:startColor="@color/control_center_outer_glow"
-                        android:centerColor="@color/control_center_outer_glow_soft"
-                        android:endColor="@android:color/transparent" />
-                </shape>
-            </item>
-            <item>
-                <shape android:shape="oval">
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/control_center_shell_top"
-                        android:endColor="@color/control_center_shell_bottom" />
-                    <stroke android:width="1.4dp" android:color="@color/control_center_shell_stroke" />
-                </shape>
-            </item>
-            <item android:left="4dp" android:top="4dp" android:right="4dp" android:bottom="4dp">
-                <shape android:shape="oval">
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/control_center_ring_back_top"
-                        android:endColor="@color/control_center_ring_back_bottom" />
-                    <stroke android:width="2.4dp" android:color="@color/control_center_ring" />
-                </shape>
-            </item>
-            <item android:left="11dp" android:top="11dp" android:right="11dp" android:bottom="11dp">
-                <shape android:shape="oval">
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/control_center_inner_top"
-                        android:endColor="@color/control_center_inner_bottom" />
-                    <stroke android:width="0.8dp" android:color="@color/control_center_inner_stroke" />
-                </shape>
-            </item>
-            <item android:left="30dp" android:top="12dp" android:right="30dp" android:bottom="82dp">
-                <shape android:shape="oval">
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/control_center_highlight"
-                        android:endColor="@android:color/transparent" />
-                </shape>
-            </item>
-        </layer-list>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/button_shell" />
+            <corners android:radius="28dp" />
+            <stroke
+                android:width="2dp"
+                android:color="@color/button_outer_outline" />
+        </shape>
     </item>
-</selector>
+
+    <item
+        android:left="5dp"
+        android:top="5dp"
+        android:right="5dp"
+        android:bottom="5dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="@color/button_fill_top"
+                android:endColor="@color/button_fill_bottom" />
+            <corners android:radius="23dp" />
+            <stroke
+                android:width="1dp"
+                android:color="@color/button_inner_outline" />
+        </shape>
+    </item>
+</layer-list>

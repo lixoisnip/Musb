@@ -111,4 +111,16 @@
     <color name="control_icon_tint">#F4F6F8</color>
     <color name="control_icon_tint_dim">#737C88</color>
     <color name="control_icon_tint_active">#FFFFFF</color>
+    <color name="panel_shell">#121418</color>
+    <color name="panel_fill_top">#1F2228</color>
+    <color name="panel_fill_bottom">#0B0C0F</color>
+    <color name="panel_outline">#303540</color>
+    <color name="panel_inner_outline">#16191E</color>
+    <color name="button_shell">#121316</color>
+    <color name="button_fill_top">#25282E</color>
+    <color name="button_fill_bottom">#111318</color>
+    <color name="button_outer_outline">#07080A</color>
+    <color name="button_inner_outline">#16191E</color>
+    <color name="icon_light">#F0F1F3</color>
+    <color name="icon_dim">#7E8088</color>
 </resources>
