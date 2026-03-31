@@ -312,7 +312,7 @@
     <FrameLayout
         android:id="@+id/controlRow"
         android:layout_width="0dp"
-        android:layout_height="214dp"
+        android:layout_height="188dp"
         android:background="@drawable/bg_controls_cluster"
         android:clipChildren="false"
         android:clipToPadding="false"
