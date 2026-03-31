@@ -496,6 +496,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private suspend fun renderSourceRootExplorer(root: DocumentFile, source: ExplorerSource?) {
+        currentSourceId = source?.id ?: currentSourceId
+        currentSourceLabel = source?.label ?: currentSourceLabel
+        selectedRightFolder = root
+        selectedLeftFolder = root
+        expandedRightFolderUris.clear()
+        expandedRightFolderUris += root.uri.toString()
+        renderFolderContext(root, currentTrackUri)
+    }
+
     private fun loadPersistedTreeContext() {
         // Disabled intentionally for now.
         // We do not restore the last saved folder into UI on startup,
@@ -968,19 +978,6 @@ class MainActivity : AppCompatActivity() {
                 add(ExplorerSource.Usb(slot = index + 1, volume = volume))
             }
         }
-    }
-
-    private fun launchSourcePicker(source: ExplorerSource) {
-        val volume = when (source) {
-            is ExplorerSource.Music -> source.volume
-            is ExplorerSource.Usb -> source.volume
-        }
-        val intent = volume?.createOpenDocumentTreeIntent()
-        if (intent == null) {
-            chooseFolderLauncher.launch(null)
-            return
-        }
-        chooseSourceTreeLauncher.launch(intent)
     }
 
     private fun isTreeUriForSource(uri: Uri, source: ExplorerSource): Boolean {
