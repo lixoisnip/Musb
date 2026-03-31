@@ -13,6 +13,7 @@ import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.storage.StorageManager
+import android.os.storage.StorageVolume
 import android.provider.DocumentsContract
 import android.util.Log
 import android.util.Base64
@@ -91,6 +92,27 @@ class MainActivity : AppCompatActivity() {
     private val expandedRightFolderUris = linkedSetOf<String>()
     private var currentRightTrackScope: DocumentFile? = null
     private var currentBreadcrumb: String = "Music"
+    private val startupSourcesById = linkedMapOf<String, ExplorerSource>()
+
+    private sealed class ExplorerSource(
+        open val id: String,
+        open val label: String
+    ) {
+        data class Music(
+            val volume: StorageVolume?
+        ) : ExplorerSource(
+            id = SOURCE_MUSIC,
+            label = "Музыка"
+        )
+
+        data class Usb(
+            val slot: Int,
+            val volume: StorageVolume
+        ) : ExplorerSource(
+            id = "usb_$slot",
+            label = "USB $slot"
+        )
+    }
 
     private val clockRunnable = object : Runnable {
         override fun run() {
@@ -110,6 +132,19 @@ class MainActivity : AppCompatActivity() {
     private val chooseFolderLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
             Log.d(TAG, "chooseFolderLauncher result uri=$uri")
+            if (uri == null) {
+                pendingSourceIdForPicker = null
+                Toast.makeText(this, R.string.folder_pick_cancelled, Toast.LENGTH_SHORT).show()
+                resetToStartupSourceList()
+                return@registerForActivityResult
+            }
+            openPickedSourceTree(uri)
+        }
+
+    private val chooseSourceTreeLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val uri = result.data?.data
+            Log.d(TAG, "chooseSourceTreeLauncher result uri=$uri code=${result.resultCode}")
             if (uri == null) {
                 pendingSourceIdForPicker = null
                 Toast.makeText(this, R.string.folder_pick_cancelled, Toast.LENGTH_SHORT).show()
@@ -349,6 +384,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun openPickedSourceTree(uri: Uri) {
         Log.d(TAG, "openPickedSourceTree(uri=$uri)")
+        val sourceId = pendingSourceIdForPicker
+        val source = sourceId?.let { startupSourcesById[it] }
+        if (sourceId != null && source == null) {
+            pendingSourceIdForPicker = null
+            Toast.makeText(this, R.string.source_unavailable_suffix, Toast.LENGTH_SHORT).show()
+            resetToStartupSourceList()
+            return
+        }
+        if (source != null && !isTreeUriForSource(uri, source)) {
+            pendingSourceIdForPicker = null
+            Toast.makeText(
+                this,
+                getString(R.string.source_root_wrong_source, source.label),
+                Toast.LENGTH_LONG
+            ).show()
+            resetToStartupSourceList()
+            return
+        }
         if (!persistUriPermission(uri)) {
             pendingSourceIdForPicker = null
             Log.d(TAG, "openPickedSourceTree denied: persistUriPermission failed uri=$uri")
@@ -383,23 +436,32 @@ class MainActivity : AppCompatActivity() {
             }
 
             navigationTreeUri = uri
-            val sourceId = pendingSourceIdForPicker
             sourceId?.let {
                 prefs.edit { putString(sourcePrefKey(sourceId), uri.toString()) }
                 Log.d(TAG, "Stored source root uri for sourceId=$sourceId uri=$uri")
             }
             currentSourceId = sourceId
-            currentSourceLabel = sourceId?.let { sourceLabelForId(it) }
+            currentSourceLabel = source?.label
             pendingSourceIdForPicker = null
             renderRootOverview(root)
         }
     }
 
-    private fun openSavedSourceTree(sourceId: String, uri: Uri) {
-        Log.d(TAG, "openSavedSourceTree sourceId=$sourceId uri=$uri")
+    private fun openSavedSourceTree(source: ExplorerSource, uri: Uri) {
+        Log.d(TAG, "openSavedSourceTree sourceId=${source.id} uri=$uri")
+        if (!isTreeUriForSource(uri, source)) {
+            prefs.edit { remove(sourcePrefKey(source.id)) }
+            Toast.makeText(
+                this,
+                getString(R.string.source_root_wrong_source, source.label),
+                Toast.LENGTH_LONG
+            ).show()
+            resetToStartupSourceList()
+            return
+        }
         val root = DocumentFile.fromTreeUri(this, uri)
         if (root == null || !root.exists() || !root.isDirectory) {
-            prefs.edit { remove(sourcePrefKey(sourceId)) }
+            prefs.edit { remove(sourcePrefKey(source.id)) }
             Toast.makeText(this, R.string.source_root_denied, Toast.LENGTH_LONG).show()
             resetToStartupSourceList()
             return
@@ -410,15 +472,15 @@ class MainActivity : AppCompatActivity() {
                 true
             }.getOrElse { false }
             if (!canListChildren) {
-                prefs.edit { remove(sourcePrefKey(sourceId)) }
+                prefs.edit { remove(sourcePrefKey(source.id)) }
                 Toast.makeText(this@MainActivity, R.string.source_root_denied, Toast.LENGTH_LONG).show()
                 resetToStartupSourceList()
                 return@launch
             }
             navigationTreeUri = uri
             pendingSourceIdForPicker = null
-            currentSourceId = sourceId
-            currentSourceLabel = sourceLabelForId(sourceId)
+            currentSourceId = source.id
+            currentSourceLabel = source.label
             renderRootOverview(root)
         }
     }
@@ -819,20 +881,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun renderStartupSourceList() {
-        val startupItems = mutableListOf(
-            FileEntryAdapter.EntryItem(
-                customId = SOURCE_MUSIC,
-                customName = getString(R.string.startup_source_music),
-                customIcon = "📁",
-                isCustomFolder = true
-            )
-        )
-        val removableCount = detectConnectedRemovableCount().coerceIn(0, MAX_USB_SOURCES)
-        for (index in 1..removableCount) {
+        val startupSources = collectStartupSources()
+        startupSourcesById.clear()
+        startupSources.forEach { startupSourcesById[it.id] = it }
+        val startupItems = mutableListOf<FileEntryAdapter.EntryItem>()
+        startupSources.forEach { source ->
             startupItems += FileEntryAdapter.EntryItem(
-                customId = usbSourceId(index),
-                customName = getString(R.string.startup_source_usb, index),
-                customIcon = "💾",
+                customId = source.id,
+                customName = source.label,
+                customIcon = if (source is ExplorerSource.Music) "📁" else "💾",
                 isCustomFolder = true
             )
         }
@@ -840,50 +897,80 @@ class MainActivity : AppCompatActivity() {
         rightAdapter.setSelectedKey(null)
     }
 
-    private fun detectConnectedRemovableCount(): Int {
-        val storageManager = getSystemService(StorageManager::class.java) ?: return 0
-        return storageManager.storageVolumes.count { volume ->
-            volume.isRemovable &&
-                !volume.isPrimary &&
-                (volume.state == Environment.MEDIA_MOUNTED || volume.state == Environment.MEDIA_MOUNTED_READ_ONLY)
-        }
-    }
-
     private fun onStartupSourceTapped(sourceId: String) {
+        val source = startupSourcesById[sourceId]
+        if (source == null) {
+            Toast.makeText(this, R.string.status_no_sources, Toast.LENGTH_SHORT).show()
+            renderStartupSourceList()
+            return
+        }
         pendingSourceIdForPicker = sourceId
         currentSourceId = sourceId
-        currentSourceLabel = sourceLabelForId(sourceId)
+        currentSourceLabel = source.label
         rightAdapter.setSelectedKey(sourceId)
         val savedTreeUri = prefs.getString(sourcePrefKey(sourceId), null)?.let(Uri::parse)
-        if (savedTreeUri != null && isValidTreeUri(savedTreeUri)) {
+        if (savedTreeUri != null && isValidTreeUri(savedTreeUri) && isTreeUriForSource(savedTreeUri, source)) {
             Log.d(TAG, "Opening saved source tree for sourceId=$sourceId uri=$savedTreeUri")
-            openSavedSourceTree(sourceId, savedTreeUri)
+            openSavedSourceTree(source, savedTreeUri)
             return
         }
         if (savedTreeUri != null) {
             prefs.edit { remove(sourcePrefKey(sourceId)) }
         }
-        Log.d(TAG, "No saved source tree for sourceId=$sourceId. Launching picker.")
-        chooseFolderLauncher.launch(null)
+        Log.d(TAG, "No valid saved source tree for sourceId=$sourceId. Launching source picker.")
+        launchSourcePicker(source)
     }
 
     private fun sourcePrefKey(sourceId: String): String = "${KEY_SOURCE_TREE_PREFIX}$sourceId"
 
-    private fun usbSourceId(index: Int): String = "usb_$index"
-
-    private fun sourceLabelForId(sourceId: String): String {
-        return if (sourceId == SOURCE_MUSIC) {
-            getString(R.string.startup_source_music)
-        } else {
-            sourceId.removePrefix("usb_").toIntOrNull()?.let { index ->
-                getString(R.string.startup_source_usb, index)
-            } ?: sourceId
-        }
-    }
-
     private fun isValidTreeUri(uri: Uri): Boolean {
         val root = DocumentFile.fromTreeUri(this, uri) ?: return false
         return root.exists() && root.isDirectory
+    }
+
+    private fun collectStartupSources(): List<ExplorerSource> {
+        val storageManager = getSystemService(StorageManager::class.java)
+        val volumes = storageManager?.storageVolumes.orEmpty()
+        val musicVolume = volumes.firstOrNull { it.isPrimary }
+        val removable = volumes
+            .asSequence()
+            .filter { volume ->
+                volume.isRemovable &&
+                    !volume.isPrimary &&
+                    (volume.state == Environment.MEDIA_MOUNTED || volume.state == Environment.MEDIA_MOUNTED_READ_ONLY)
+            }
+            .take(MAX_USB_SOURCES)
+            .toList()
+
+        return buildList {
+            add(ExplorerSource.Music(volume = musicVolume))
+            removable.forEachIndexed { index, volume ->
+                add(ExplorerSource.Usb(slot = index + 1, volume = volume))
+            }
+        }
+    }
+
+    private fun launchSourcePicker(source: ExplorerSource) {
+        val volume = when (source) {
+            is ExplorerSource.Music -> source.volume
+            is ExplorerSource.Usb -> source.volume
+        }
+        val intent = volume?.createOpenDocumentTreeIntent()
+        if (intent == null) {
+            chooseFolderLauncher.launch(null)
+            return
+        }
+        chooseSourceTreeLauncher.launch(intent)
+    }
+
+    private fun isTreeUriForSource(uri: Uri, source: ExplorerSource): Boolean {
+        val treeDocId = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull() ?: return false
+        val volumeId = treeDocId.substringBefore(':', "")
+        if (volumeId.isBlank()) return false
+        return when (source) {
+            is ExplorerSource.Music -> volumeId == PRIMARY_VOLUME_ID
+            is ExplorerSource.Usb -> source.volume.uuid?.equals(volumeId, ignoreCase = true) == true
+        }
     }
 
     private fun navigateToParentFolder() {
@@ -1126,6 +1213,7 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_LAST_TREE_URI = "last_tree_uri"
         private const val KEY_SOURCE_TREE_PREFIX = "source_tree_uri_"
         private const val SOURCE_MUSIC = "music"
+        private const val PRIMARY_VOLUME_ID = "primary"
         private const val MAX_USB_SOURCES = 5
         private const val CLOCK_REFRESH_MS = 30_000L
         private const val PLAYER_PROGRESS_POLL_MS = 1_000L
