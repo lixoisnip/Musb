@@ -35,6 +35,7 @@
     <string name="uri_permission_failed">Cannot access selected item</string>
     <string name="source_root_denied">This folder cannot be used as a root source. Pick another folder.</string>
     <string name="source_root_wrong_source">Selected folder does not belong to source %1$s.</string>
+    <string name="source_not_configured_use_long_press">Source %1$s is not configured. Long-press the folder button to bind it.</string>
     <string name="file_context_unavailable">Playing selected file, but folder context is unavailable</string>
     <string name="playback_failed">Cannot play selected audio</string>
     <string name="no_supported_audio">No supported audio files found</string>
