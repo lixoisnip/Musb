@@ -355,16 +355,7 @@ class MainActivity : AppCompatActivity() {
             }
             pendingSourceIdForPicker = sourceId
             Log.d(TAG, "browseButton long-click: launching folder tree picker for sourceId=$sourceId")
-            val volume = when (source) {
-                is ExplorerSource.Music -> source.volume
-                is ExplorerSource.Usb -> source.volume
-            }
-            val intent = volume?.createOpenDocumentTreeIntent()
-            if (intent == null) {
-                chooseFolderLauncher.launch(null)
-            } else {
-                chooseSourceTreeLauncher.launch(intent)
-            }
+            launchSourcePicker(source)
             Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
             true
         }
@@ -459,7 +450,9 @@ class MainActivity : AppCompatActivity() {
             currentSourceId = sourceId
             currentSourceLabel = source?.label
             pendingSourceIdForPicker = null
-            renderSourceRootExplorer(root, source)
+            expandedRightFolderUris.clear()
+            expandedRightFolderUris += root.uri.toString()
+            renderFolderContext(root, currentTrackUri)
         }
     }
 
@@ -497,7 +490,9 @@ class MainActivity : AppCompatActivity() {
             pendingSourceIdForPicker = null
             currentSourceId = source.id
             currentSourceLabel = source.label
-            renderSourceRootExplorer(root, source)
+            expandedRightFolderUris.clear()
+            expandedRightFolderUris += root.uri.toString()
+            renderFolderContext(root, currentTrackUri)
         }
     }
 
