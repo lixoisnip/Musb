@@ -74,4 +74,6 @@
     <string name="select_folder_to_show_songs">Songs will appear after you select a folder on the right</string>
     <string name="songs_panel_title">Songs</string>
     <string name="folders_panel_title">Folders</string>
+    <string name="startup_source_music">Музыка</string>
+    <string name="startup_source_usb">USB %1$d</string>
 </resources>

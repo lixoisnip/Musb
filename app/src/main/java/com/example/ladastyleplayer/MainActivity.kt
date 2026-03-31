@@ -9,8 +9,10 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.storage.StorageManager
 import android.provider.DocumentsContract
 import android.util.Log
 import android.util.Base64
@@ -80,6 +82,7 @@ class MainActivity : AppCompatActivity() {
     private var repeatMode = Player.REPEAT_MODE_OFF
     private var isMuted = false
     private var navigationTreeUri: Uri? = null
+    private var pendingSourceIdForPicker: String? = null
     private var selectedLeftKey: String? = null
     private var selectedLeftFolder: DocumentFile? = null
     private var selectedRightFolder: DocumentFile? = null
@@ -106,6 +109,7 @@ class MainActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
             Log.d(TAG, "chooseFolderLauncher result uri=$uri")
             if (uri == null) {
+                pendingSourceIdForPicker = null
                 Toast.makeText(this, R.string.folder_pick_cancelled, Toast.LENGTH_SHORT).show()
                 return@registerForActivityResult
             }
@@ -282,6 +286,7 @@ class MainActivity : AppCompatActivity() {
             onFolderClick = { folder -> onRightFolderTapped(folder) },
             onFileClick = { _ -> },
             onPlayFolder = { _ -> },
+            onCustomClick = { sourceId -> onStartupSourceTapped(sourceId) },
             onUpClick = null,
             hierarchicalIndent = true
         )
@@ -342,6 +347,7 @@ class MainActivity : AppCompatActivity() {
     private fun openTree(uri: Uri) {
         Log.d(TAG, "openTree(uri=$uri)")
         if (!persistUriPermission(uri)) {
+            pendingSourceIdForPicker = null
             Log.d(TAG, "openTree denied: persistUriPermission failed uri=$uri")
             Toast.makeText(this, R.string.source_root_denied, Toast.LENGTH_LONG).show()
             return
@@ -349,6 +355,7 @@ class MainActivity : AppCompatActivity() {
 
         val root = DocumentFile.fromTreeUri(this, uri)
         if (root == null || !root.exists() || !root.isDirectory) {
+            pendingSourceIdForPicker = null
             Log.d(TAG, "openTree denied: invalid root uri=$uri exists=${root?.exists()} isDirectory=${root?.isDirectory}")
             Toast.makeText(this, R.string.source_root_denied, Toast.LENGTH_LONG).show()
             return
@@ -364,11 +371,17 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (!canListChildren) {
+                pendingSourceIdForPicker = null
                 Toast.makeText(this@MainActivity, R.string.source_root_denied, Toast.LENGTH_LONG).show()
                 return@launch
             }
 
             navigationTreeUri = uri
+            pendingSourceIdForPicker?.let { sourceId ->
+                prefs.edit { putString(sourcePrefKey(sourceId), uri.toString()) }
+                Log.d(TAG, "Stored source root uri for sourceId=$sourceId uri=$uri")
+            }
+            pendingSourceIdForPicker = null
             renderRootOverview(root)
         }
     }
@@ -745,14 +758,77 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun syncInitialFolderContext() {
-        usbStatusText.text = getString(R.string.status_no_usb)
-        pathText.text = getString(R.string.status_no_usb)
-        topSourceText.text = getString(R.string.top_source_placeholder)
+        usbStatusText.text = getString(R.string.status_usb_ready)
+        pathText.text = getString(R.string.sources)
+        topSourceText.text = getString(R.string.top_source_roots)
+        selectedRightFolder = null
+        selectedLeftFolder = null
+        navigationTreeUri = null
+        expandedRightFolderUris.clear()
+        leftAdapter.submitList(emptyList())
+        leftAdapter.setSelectedKey(null)
+        leftAdapter.setHighlightedUri(currentTrackUri)
+        renderStartupSourceList()
         findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.select_folder_to_show_songs)
-        findViewById<TextView>(R.id.leftEmptyText).visibility = if (leftAdapter.itemCount == 0) View.VISIBLE else View.GONE
-        findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.pick_root_folder_hint)
-        findViewById<TextView>(R.id.rightEmptyText).visibility = if (rightAdapter.itemCount == 0) View.VISIBLE else View.GONE
-        Log.d(TAG, "syncInitialFolderContext startup restore disabled")
+        findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
+        findViewById<TextView>(R.id.rightEmptyText).visibility = View.GONE
+        Log.d(TAG, "syncInitialFolderContext startup source list rendered")
+    }
+
+    private fun renderStartupSourceList() {
+        val startupItems = mutableListOf(
+            FileEntryAdapter.EntryItem(
+                customId = SOURCE_MUSIC,
+                customName = getString(R.string.startup_source_music),
+                customIcon = "📁",
+                isCustomFolder = true
+            )
+        )
+        val removableCount = detectConnectedRemovableCount().coerceIn(0, MAX_USB_SOURCES)
+        for (index in 1..removableCount) {
+            startupItems += FileEntryAdapter.EntryItem(
+                customId = usbSourceId(index),
+                customName = getString(R.string.startup_source_usb, index),
+                customIcon = "💾",
+                isCustomFolder = true
+            )
+        }
+        rightAdapter.submitList(startupItems)
+        rightAdapter.setSelectedKey(null)
+    }
+
+    private fun detectConnectedRemovableCount(): Int {
+        val storageManager = getSystemService(StorageManager::class.java) ?: return 0
+        return storageManager.storageVolumes.count { volume ->
+            volume.isRemovable &&
+                !volume.isPrimary &&
+                (volume.state == Environment.MEDIA_MOUNTED || volume.state == Environment.MEDIA_MOUNTED_READ_ONLY)
+        }
+    }
+
+    private fun onStartupSourceTapped(sourceId: String) {
+        pendingSourceIdForPicker = sourceId
+        rightAdapter.setSelectedKey(sourceId)
+        val savedTreeUri = prefs.getString(sourcePrefKey(sourceId), null)?.let(Uri::parse)
+        if (savedTreeUri != null && isValidTreeUri(savedTreeUri)) {
+            Log.d(TAG, "Opening saved source tree for sourceId=$sourceId uri=$savedTreeUri")
+            openTree(savedTreeUri)
+            return
+        }
+        if (savedTreeUri != null) {
+            prefs.edit { remove(sourcePrefKey(sourceId)) }
+        }
+        Log.d(TAG, "No saved source tree for sourceId=$sourceId. Launching picker.")
+        chooseFolderLauncher.launch(null)
+    }
+
+    private fun sourcePrefKey(sourceId: String): String = "${KEY_SOURCE_TREE_PREFIX}$sourceId"
+
+    private fun usbSourceId(index: Int): String = "usb_$index"
+
+    private fun isValidTreeUri(uri: Uri): Boolean {
+        val root = DocumentFile.fromTreeUri(this, uri) ?: return false
+        return root.exists() && root.isDirectory
     }
 
     private fun navigateToParentFolder() {
@@ -993,6 +1069,9 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "MainActivity"
         private const val PREFS_NAME = "player_prefs"
         private const val KEY_LAST_TREE_URI = "last_tree_uri"
+        private const val KEY_SOURCE_TREE_PREFIX = "source_tree_uri_"
+        private const val SOURCE_MUSIC = "music"
+        private const val MAX_USB_SOURCES = 5
         private const val CLOCK_REFRESH_MS = 30_000L
         private const val PLAYER_PROGRESS_POLL_MS = 1_000L
     }
