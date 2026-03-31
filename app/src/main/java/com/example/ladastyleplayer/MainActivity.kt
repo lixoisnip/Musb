@@ -347,8 +347,15 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.file_picker_hint, Toast.LENGTH_SHORT).show()
         }
         findViewById<ImageButton>(R.id.browseButton).setOnLongClickListener {
-            Log.d(TAG, "browseButton long-click: launching folder tree picker")
-            chooseFolderLauncher.launch(null)
+            val sourceId = currentSourceId
+            val source = sourceId?.let { startupSourcesById[it] }
+            if (sourceId == null || source == null) {
+                Toast.makeText(this, R.string.select_source_hint, Toast.LENGTH_LONG).show()
+                return@setOnLongClickListener true
+            }
+            pendingSourceIdForPicker = sourceId
+            Log.d(TAG, "browseButton long-click: launching folder tree picker for sourceId=$sourceId")
+            launchSourcePicker(source)
             Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
             true
         }
@@ -443,7 +450,9 @@ class MainActivity : AppCompatActivity() {
             currentSourceId = sourceId
             currentSourceLabel = source?.label
             pendingSourceIdForPicker = null
-            renderRootOverview(root)
+            expandedRightFolderUris.clear()
+            expandedRightFolderUris += root.uri.toString()
+            renderFolderContext(root, currentTrackUri)
         }
     }
 
@@ -481,7 +490,9 @@ class MainActivity : AppCompatActivity() {
             pendingSourceIdForPicker = null
             currentSourceId = source.id
             currentSourceLabel = source.label
-            renderRootOverview(root)
+            expandedRightFolderUris.clear()
+            expandedRightFolderUris += root.uri.toString()
+            renderFolderContext(root, currentTrackUri)
         }
     }
 
@@ -624,11 +635,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun renderRightFolderTree(rootFolder: DocumentFile) {
-        val rootChildren = runCatching { repository.listChildFoldersOnly(rootFolder) }.getOrElse { emptyList() }
         val folderItems = mutableListOf<FileEntryAdapter.EntryItem>()
-        rootChildren.forEach { folder ->
-            appendFolderNode(folderItems, folder)
-        }
+        appendFolderNode(folderItems, rootFolder)
         rightAdapter.submitList(folderItems)
         rightAdapter.setSelectedKey(selectedRightFolder?.uri?.toString())
         findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.no_folders_found)
@@ -904,21 +912,33 @@ class MainActivity : AppCompatActivity() {
             renderStartupSourceList()
             return
         }
-        pendingSourceIdForPicker = sourceId
+
         currentSourceId = sourceId
         currentSourceLabel = source.label
         rightAdapter.setSelectedKey(sourceId)
-        val savedTreeUri = prefs.getString(sourcePrefKey(sourceId), null)?.let(Uri::parse)
-        if (savedTreeUri != null && isValidTreeUri(savedTreeUri) && isTreeUriForSource(savedTreeUri, source)) {
-            Log.d(TAG, "Opening saved source tree for sourceId=$sourceId uri=$savedTreeUri")
-            openSavedSourceTree(source, savedTreeUri)
+
+        val boundTreeUri = resolveBoundTreeUriForSource(source)
+
+        if (boundTreeUri != null) {
+            openSavedSourceTree(source, boundTreeUri)
             return
         }
-        if (savedTreeUri != null) {
-            prefs.edit { remove(sourcePrefKey(sourceId)) }
+
+        Toast.makeText(
+            this,
+            getString(R.string.source_not_configured_use_long_press, source.label),
+            Toast.LENGTH_LONG
+        ).show()
+    }
+
+    private fun resolveBoundTreeUriForSource(source: ExplorerSource): Uri? {
+        val uriString = prefs.getString(sourcePrefKey(source.id), null) ?: return null
+        val uri = runCatching { Uri.parse(uriString) }.getOrNull() ?: return null
+        if (!isValidTreeUri(uri) || !isTreeUriForSource(uri, source)) {
+            prefs.edit { remove(sourcePrefKey(source.id)) }
+            return null
         }
-        Log.d(TAG, "No valid saved source tree for sourceId=$sourceId. Launching source picker.")
-        launchSourcePicker(source)
+        return uri
     }
 
     private fun sourcePrefKey(sourceId: String): String = "${KEY_SOURCE_TREE_PREFIX}$sourceId"
