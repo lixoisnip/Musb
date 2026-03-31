@@ -83,6 +83,8 @@ class MainActivity : AppCompatActivity() {
     private var isMuted = false
     private var navigationTreeUri: Uri? = null
     private var pendingSourceIdForPicker: String? = null
+    private var currentSourceId: String? = null
+    private var currentSourceLabel: String? = null
     private var selectedLeftKey: String? = null
     private var selectedLeftFolder: DocumentFile? = null
     private var selectedRightFolder: DocumentFile? = null
@@ -111,9 +113,10 @@ class MainActivity : AppCompatActivity() {
             if (uri == null) {
                 pendingSourceIdForPicker = null
                 Toast.makeText(this, R.string.folder_pick_cancelled, Toast.LENGTH_SHORT).show()
+                resetToStartupSourceList()
                 return@registerForActivityResult
             }
-            openTree(uri)
+            openPickedSourceTree(uri)
         }
 
     private val chooseAudioLauncher =
@@ -344,20 +347,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun openTree(uri: Uri) {
-        Log.d(TAG, "openTree(uri=$uri)")
+    private fun openPickedSourceTree(uri: Uri) {
+        Log.d(TAG, "openPickedSourceTree(uri=$uri)")
         if (!persistUriPermission(uri)) {
             pendingSourceIdForPicker = null
-            Log.d(TAG, "openTree denied: persistUriPermission failed uri=$uri")
+            Log.d(TAG, "openPickedSourceTree denied: persistUriPermission failed uri=$uri")
             Toast.makeText(this, R.string.source_root_denied, Toast.LENGTH_LONG).show()
+            resetToStartupSourceList()
             return
         }
 
         val root = DocumentFile.fromTreeUri(this, uri)
         if (root == null || !root.exists() || !root.isDirectory) {
             pendingSourceIdForPicker = null
-            Log.d(TAG, "openTree denied: invalid root uri=$uri exists=${root?.exists()} isDirectory=${root?.isDirectory}")
+            Log.d(TAG, "openPickedSourceTree denied: invalid root uri=$uri exists=${root?.exists()} isDirectory=${root?.isDirectory}")
             Toast.makeText(this, R.string.source_root_denied, Toast.LENGTH_LONG).show()
+            resetToStartupSourceList()
             return
         }
 
@@ -366,22 +371,54 @@ class MainActivity : AppCompatActivity() {
                 repository.listChildren(root)
                 true
             }.getOrElse { error ->
-                Log.d(TAG, "openTree denied: cannot list root uri=$uri message=${error.message}")
+                Log.d(TAG, "openPickedSourceTree denied: cannot list root uri=$uri message=${error.message}")
                 false
             }
 
             if (!canListChildren) {
                 pendingSourceIdForPicker = null
                 Toast.makeText(this@MainActivity, R.string.source_root_denied, Toast.LENGTH_LONG).show()
+                resetToStartupSourceList()
                 return@launch
             }
 
             navigationTreeUri = uri
-            pendingSourceIdForPicker?.let { sourceId ->
+            val sourceId = pendingSourceIdForPicker
+            sourceId?.let {
                 prefs.edit { putString(sourcePrefKey(sourceId), uri.toString()) }
                 Log.d(TAG, "Stored source root uri for sourceId=$sourceId uri=$uri")
             }
+            currentSourceId = sourceId
+            currentSourceLabel = sourceId?.let { sourceLabelForId(it) }
             pendingSourceIdForPicker = null
+            renderRootOverview(root)
+        }
+    }
+
+    private fun openSavedSourceTree(sourceId: String, uri: Uri) {
+        Log.d(TAG, "openSavedSourceTree sourceId=$sourceId uri=$uri")
+        val root = DocumentFile.fromTreeUri(this, uri)
+        if (root == null || !root.exists() || !root.isDirectory) {
+            prefs.edit { remove(sourcePrefKey(sourceId)) }
+            Toast.makeText(this, R.string.source_root_denied, Toast.LENGTH_LONG).show()
+            resetToStartupSourceList()
+            return
+        }
+        mainScope.launch {
+            val canListChildren = runCatching {
+                repository.listChildren(root)
+                true
+            }.getOrElse { false }
+            if (!canListChildren) {
+                prefs.edit { remove(sourcePrefKey(sourceId)) }
+                Toast.makeText(this@MainActivity, R.string.source_root_denied, Toast.LENGTH_LONG).show()
+                resetToStartupSourceList()
+                return@launch
+            }
+            navigationTreeUri = uri
+            pendingSourceIdForPicker = null
+            currentSourceId = sourceId
+            currentSourceLabel = sourceLabelForId(sourceId)
             renderRootOverview(root)
         }
     }
@@ -595,7 +632,7 @@ class MainActivity : AppCompatActivity() {
             selectedLeftFolder = null
             expandedRightFolderUris.clear()
             expandedRightFolderUris += root.uri.toString()
-            currentBreadcrumb = root.name ?: "Music"
+            currentBreadcrumb = currentSourceLabel ?: root.name ?: "Music"
             pathText.text = currentBreadcrumb
             topSourceText.text = getString(R.string.showing_music_in, currentBreadcrumb)
             usbStatusText.text = getString(R.string.status_usb_connected)
@@ -758,6 +795,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun syncInitialFolderContext() {
+        currentSourceId = null
+        currentSourceLabel = null
         usbStatusText.text = getString(R.string.status_usb_ready)
         pathText.text = getString(R.string.sources)
         topSourceText.text = getString(R.string.top_source_roots)
@@ -769,10 +808,14 @@ class MainActivity : AppCompatActivity() {
         leftAdapter.setSelectedKey(null)
         leftAdapter.setHighlightedUri(currentTrackUri)
         renderStartupSourceList()
-        findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.select_folder_to_show_songs)
+        findViewById<TextView>(R.id.leftEmptyText).text = getString(R.string.select_source_to_show_songs)
         findViewById<TextView>(R.id.leftEmptyText).visibility = View.VISIBLE
         findViewById<TextView>(R.id.rightEmptyText).visibility = View.GONE
         Log.d(TAG, "syncInitialFolderContext startup source list rendered")
+    }
+
+    private fun resetToStartupSourceList() {
+        syncInitialFolderContext()
     }
 
     private fun renderStartupSourceList() {
@@ -808,11 +851,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun onStartupSourceTapped(sourceId: String) {
         pendingSourceIdForPicker = sourceId
+        currentSourceId = sourceId
+        currentSourceLabel = sourceLabelForId(sourceId)
         rightAdapter.setSelectedKey(sourceId)
         val savedTreeUri = prefs.getString(sourcePrefKey(sourceId), null)?.let(Uri::parse)
         if (savedTreeUri != null && isValidTreeUri(savedTreeUri)) {
             Log.d(TAG, "Opening saved source tree for sourceId=$sourceId uri=$savedTreeUri")
-            openTree(savedTreeUri)
+            openSavedSourceTree(sourceId, savedTreeUri)
             return
         }
         if (savedTreeUri != null) {
@@ -825,6 +870,16 @@ class MainActivity : AppCompatActivity() {
     private fun sourcePrefKey(sourceId: String): String = "${KEY_SOURCE_TREE_PREFIX}$sourceId"
 
     private fun usbSourceId(index: Int): String = "usb_$index"
+
+    private fun sourceLabelForId(sourceId: String): String {
+        return if (sourceId == SOURCE_MUSIC) {
+            getString(R.string.startup_source_music)
+        } else {
+            sourceId.removePrefix("usb_").toIntOrNull()?.let { index ->
+                getString(R.string.startup_source_usb, index)
+            } ?: sourceId
+        }
+    }
 
     private fun isValidTreeUri(uri: Uri): Boolean {
         val root = DocumentFile.fromTreeUri(this, uri) ?: return false
