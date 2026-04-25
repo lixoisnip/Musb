@@ -18,6 +18,7 @@
     <string name="usb_disconnected">USB disconnected, choose folder again</string>
     <string name="choose_folder">Choose USB folder</string>
     <string name="folder_picker_hint">Pick a music folder</string>
+    <string name="pick_folder_for_source">Pick folder for source: %1$s</string>
     <string name="add_music_source">Add a music source</string>
     <string name="select_source_hint">Select a source from the right panel</string>
     <string name="source_unavailable_suffix">Unavailable</string>

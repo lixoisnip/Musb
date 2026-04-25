@@ -356,7 +356,11 @@ class MainActivity : AppCompatActivity() {
             pendingSourceIdForPicker = sourceId
             Log.d(TAG, "browseButton long-click: launching folder tree picker for sourceId=$sourceId")
             launchSourcePicker(source)
-            Toast.makeText(this, R.string.folder_picker_hint, Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.pick_folder_for_source, source.label),
+                Toast.LENGTH_SHORT
+            ).show()
             true
         }
         playPauseButton.setOnClickListener {
@@ -450,9 +454,7 @@ class MainActivity : AppCompatActivity() {
             currentSourceId = sourceId
             currentSourceLabel = source?.label
             pendingSourceIdForPicker = null
-            expandedRightFolderUris.clear()
-            expandedRightFolderUris += root.uri.toString()
-            renderFolderContext(root, currentTrackUri)
+            renderSourceRootExplorer(root, source)
         }
     }
 
@@ -490,9 +492,7 @@ class MainActivity : AppCompatActivity() {
             pendingSourceIdForPicker = null
             currentSourceId = source.id
             currentSourceLabel = source.label
-            expandedRightFolderUris.clear()
-            expandedRightFolderUris += root.uri.toString()
-            renderFolderContext(root, currentTrackUri)
+            renderSourceRootExplorer(root, source)
         }
     }
 
@@ -501,9 +501,30 @@ class MainActivity : AppCompatActivity() {
         currentSourceLabel = source?.label ?: currentSourceLabel
         selectedRightFolder = root
         selectedLeftFolder = root
+        currentRightTrackScope = root
         expandedRightFolderUris.clear()
         expandedRightFolderUris += root.uri.toString()
+
+        val sourceLabel = currentSourceLabel ?: root.name ?: "Music"
+        currentBreadcrumb = sourceLabel
+        pathText.text = sourceLabel
+        topSourceText.text = getString(R.string.showing_music_in, sourceLabel)
+        usbStatusText.text = getString(R.string.status_usb_connected)
+
         renderFolderContext(root, currentTrackUri)
+    }
+
+    private fun launchSourcePicker(source: ExplorerSource) {
+        val volume = when (source) {
+            is ExplorerSource.Music -> source.volume
+            is ExplorerSource.Usb -> source.volume
+        }
+        val intent = volume?.createOpenDocumentTreeIntent()
+        if (intent == null) {
+            chooseFolderLauncher.launch(null)
+        } else {
+            chooseSourceTreeLauncher.launch(intent)
+        }
     }
 
     private fun loadPersistedTreeContext() {
@@ -861,9 +882,11 @@ class MainActivity : AppCompatActivity() {
             ?: return folder.name ?: "Music"
         val currentDocId = runCatching { DocumentsContract.getDocumentId(folder.uri) }.getOrNull()
             ?: return folder.name ?: "Music"
-        if (currentDocId == rootDocId) return folder.name ?: "Music"
+        val rootLabel = currentSourceLabel ?: folder.name ?: "Music"
+        if (currentDocId == rootDocId) return rootLabel
         val relative = currentDocId.removePrefix("$rootDocId/")
-        return relative.ifBlank { folder.name ?: "Music" }.replace("/", " • ")
+        val relativeLabel = relative.ifBlank { folder.name ?: "Music" }.replace("/", " • ")
+        return "$rootLabel • $relativeLabel"
     }
 
     private suspend fun alignExplorerToFolder(folder: DocumentFile) {
