@@ -667,22 +667,40 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun renderRightFolderTree(rootFolder: DocumentFile) {
         val folderItems = mutableListOf<FileEntryAdapter.EntryItem>()
-        appendFolderNode(folderItems, rootFolder)
+        appendFolderNode(
+            target = folderItems,
+            folder = rootFolder,
+            depth = 0,
+            displayNameOverride = currentSourceLabel
+        )
         rightAdapter.submitList(folderItems)
         rightAdapter.setSelectedKey(selectedRightFolder?.uri?.toString())
         findViewById<TextView>(R.id.rightEmptyText).text = getString(R.string.no_folders_found)
-        findViewById<TextView>(R.id.rightEmptyText).visibility = if (folderItems.isEmpty()) View.VISIBLE else View.GONE
+        findViewById<TextView>(R.id.rightEmptyText).visibility =
+            if (folderItems.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private suspend fun appendFolderNode(
         target: MutableList<FileEntryAdapter.EntryItem>,
         folder: DocumentFile,
-        depth: Int = 0
+        depth: Int = 0,
+        displayNameOverride: String? = null
     ) {
-        target += FileEntryAdapter.EntryItem(documentFile = folder, depth = depth)
+        target += FileEntryAdapter.EntryItem(
+            documentFile = folder,
+            depth = depth,
+            displayNameOverride = displayNameOverride
+        )
         if (!expandedRightFolderUris.contains(folder.uri.toString())) return
         val children = runCatching { repository.listChildFoldersOnly(folder) }.getOrElse { emptyList() }
-        children.forEach { child -> appendFolderNode(target, child, depth + 1) }
+        children.forEach { child ->
+            appendFolderNode(
+                target = target,
+                folder = child,
+                depth = depth + 1,
+                displayNameOverride = null
+            )
+        }
     }
 
     private fun onRightFolderTapped(folder: DocumentFile) {

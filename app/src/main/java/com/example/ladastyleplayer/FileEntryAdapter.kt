@@ -30,7 +30,8 @@ class FileEntryAdapter(
         val customIcon: String? = null,
         val isCustomFolder: Boolean = false,
         val isEnabled: Boolean = true,
-        val depth: Int = 0
+        val depth: Int = 0,
+        val displayNameOverride: String? = null
     )
 
     private val items = mutableListOf<EntryItem>()
@@ -104,7 +105,7 @@ class FileEntryAdapter(
         }
 
         val documentFile = item.documentFile ?: return
-        holder.name.text = documentFile.name ?: "-"
+        holder.name.text = item.displayNameOverride ?: documentFile.name ?: "-"
 
         val uri = documentFile.uri.toString()
         val isActive = uri == selectedKey || uri == highlightedUri
