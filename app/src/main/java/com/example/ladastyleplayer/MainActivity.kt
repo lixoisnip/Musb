@@ -86,6 +86,8 @@ class MainActivity : AppCompatActivity() {
     private var pendingSourceIdForPicker: String? = null
     private var currentSourceId: String? = null
     private var currentSourceLabel: String? = null
+    private var activeExplorerRoot: DocumentFile? = null
+    private var activeExplorerRootUri: Uri? = null
     private var selectedLeftKey: String? = null
     private var selectedLeftFolder: DocumentFile? = null
     private var selectedRightFolder: DocumentFile? = null
@@ -497,19 +499,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun renderSourceRootExplorer(root: DocumentFile, source: ExplorerSource?) {
+        activeExplorerRoot = root
+        activeExplorerRootUri = root.uri
+
         currentSourceId = source?.id ?: currentSourceId
         currentSourceLabel = source?.label ?: currentSourceLabel
+
         selectedRightFolder = root
         selectedLeftFolder = root
         currentRightTrackScope = root
+
         expandedRightFolderUris.clear()
         expandedRightFolderUris += root.uri.toString()
-
-        val sourceLabel = currentSourceLabel ?: root.name ?: "Music"
-        currentBreadcrumb = sourceLabel
-        pathText.text = sourceLabel
-        topSourceText.text = getString(R.string.showing_music_in, sourceLabel)
-        usbStatusText.text = getString(R.string.status_usb_connected)
 
         renderFolderContext(root, currentTrackUri)
     }
@@ -640,10 +641,12 @@ class MainActivity : AppCompatActivity() {
         val selectedFolderUri = selectedFolder.uri.toString()
         Log.d(TAG, "selected folder uri=$selectedFolderUri")
 
-        val rootFolder = resolveActiveNavigationRoot(selectedFolder)
+        val rootFolder = activeExplorerRoot
+            ?.takeIf { root -> isSameOrDescendantOf(selectedFolder, root) }
+            ?: selectedFolder
         expandedRightFolderUris += rootFolder.uri.toString()
         expandedRightFolderUris += selectedFolderUri
-        val breadcrumb = buildBreadcrumb(selectedFolder, rootFolder.uri)
+        val breadcrumb = buildBreadcrumb(selectedFolder, rootFolder)
         currentBreadcrumb = breadcrumb
         pathText.text = breadcrumb
         topSourceText.text = getString(R.string.showing_music_in, breadcrumb)
@@ -706,20 +709,31 @@ class MainActivity : AppCompatActivity() {
     private fun onRightFolderTapped(folder: DocumentFile) {
         val folderUri = folder.uri.toString()
         val isActiveFolder = selectedRightFolder?.uri == folder.uri
+
         if (!isActiveFolder) {
             expandedRightFolderUris += folderUri
             openBranch(folder)
             return
         }
 
-        val root = resolveActiveNavigationRoot(folder)
-        val parent = resolveParentWithinRoot(folder, root)
-        if (parent != null && parent.uri != folder.uri) {
+        mainScope.launch {
+            val root = activeExplorerRoot
+                ?.takeIf { isSameOrDescendantOf(folder, it) }
+                ?: resolveActiveNavigationRoot(folder)
+
+            if (folder.uri == root.uri) {
+                collapseRightBranch(folder, includeSelf = false)
+                renderFolderContext(root, currentTrackUri)
+                return@launch
+            }
+
+            val parent = resolveParentWithinRoot(folder, root)
+                ?.takeIf { isSameOrDescendantOf(it, root) }
+                ?: findParentByWalkingTree(root, folder)
+                ?: root
+
             collapseRightBranch(folder, includeSelf = true)
-            openBranch(parent)
-        } else {
-            collapseRightBranch(folder, includeSelf = false)
-            openBranch(folder)
+            renderFolderContext(parent, currentTrackUri)
         }
     }
 
@@ -895,16 +909,37 @@ class MainActivity : AppCompatActivity() {
         return candidateDocId == branchDocId || candidateDocId.startsWith("$branchDocId/")
     }
 
-    private fun buildBreadcrumb(folder: DocumentFile, treeUri: Uri): String {
-        val rootDocId = runCatching { DocumentsContract.getTreeDocumentId(treeUri) }.getOrNull()
-            ?: return folder.name ?: "Music"
+    private fun buildBreadcrumb(folder: DocumentFile, rootFolder: DocumentFile): String {
+        val rootDocId = runCatching { DocumentsContract.getDocumentId(rootFolder.uri) }.getOrNull()
+            ?: runCatching { DocumentsContract.getTreeDocumentId(rootFolder.uri) }.getOrNull()
+            ?: return currentSourceLabel ?: rootFolder.name ?: "Music"
         val currentDocId = runCatching { DocumentsContract.getDocumentId(folder.uri) }.getOrNull()
-            ?: return folder.name ?: "Music"
-        val rootLabel = currentSourceLabel ?: folder.name ?: "Music"
+            ?: return currentSourceLabel ?: folder.name ?: "Music"
+        val rootLabel = currentSourceLabel ?: rootFolder.name ?: "Music"
         if (currentDocId == rootDocId) return rootLabel
         val relative = currentDocId.removePrefix("$rootDocId/")
         val relativeLabel = relative.ifBlank { folder.name ?: "Music" }.replace("/", " • ")
         return "$rootLabel • $relativeLabel"
+    }
+
+    private fun isSameOrDescendantOf(candidate: DocumentFile, root: DocumentFile): Boolean {
+        if (candidate.uri == root.uri) return true
+
+        val candidateDocId = runCatching {
+            DocumentsContract.getDocumentId(candidate.uri)
+        }.getOrNull()
+
+        val rootDocId = runCatching {
+            DocumentsContract.getDocumentId(root.uri)
+        }.getOrNull() ?: runCatching {
+            DocumentsContract.getTreeDocumentId(root.uri)
+        }.getOrNull()
+
+        if (!candidateDocId.isNullOrBlank() && !rootDocId.isNullOrBlank()) {
+            return candidateDocId == rootDocId || candidateDocId.startsWith("$rootDocId/")
+        }
+
+        return false
     }
 
     private suspend fun alignExplorerToFolder(folder: DocumentFile) {
@@ -918,6 +953,8 @@ class MainActivity : AppCompatActivity() {
     private fun syncInitialFolderContext() {
         currentSourceId = null
         currentSourceLabel = null
+        activeExplorerRoot = null
+        activeExplorerRootUri = null
         usbStatusText.text = getString(R.string.status_usb_ready)
         pathText.text = getString(R.string.sources)
         topSourceText.text = getString(R.string.top_source_roots)
@@ -936,6 +973,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resetToStartupSourceList() {
+        activeExplorerRoot = null
+        activeExplorerRootUri = null
         syncInitialFolderContext()
     }
 
@@ -1065,6 +1104,23 @@ class MainActivity : AppCompatActivity() {
             return treeParent
         }
         return resolveParentFromDocumentId(folder, currentDocId)
+    }
+
+    private suspend fun findParentByWalkingTree(root: DocumentFile, target: DocumentFile): DocumentFile? {
+        val children = runCatching {
+            repository.listChildFoldersOnly(root)
+        }.getOrElse {
+            emptyList()
+        }
+
+        for (child in children) {
+            if (child.uri == target.uri) return root
+
+            val nested = findParentByWalkingTree(child, target)
+            if (nested != null) return nested
+        }
+
+        return null
     }
 
     private fun resolveParentFromDocumentFile(folder: DocumentFile): DocumentFile? {
